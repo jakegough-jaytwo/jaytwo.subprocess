@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net45;netstandard1.3;netstandard1.6;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard1.3;netstandard1.6;netstandard2.0;netstandard2.1;net6.0</TargetFrameworks>
     <VersionPrefix>0.1.0</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/jakegough/jaytwo.subprocess.git</RepositoryUrl>
@@ -10,9 +10,6 @@
   
   <ItemGroup>
     <PackageReference Include="jaytwo.RuntimeRevelation" Version="0.1.1" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
@@ -33,6 +30,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="3.*" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.*" />
+  </ItemGroup>
+
   <!--
     // https://docs.microsoft.com/en-us/dotnet/standard/frameworks
     // preprocessor symbols for free:
@@ -42,7 +43,7 @@
 
   <!-- sourcelink (only needed on the published package project) -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -68,7 +69,7 @@
 
   <!-- coverlet & cobertura -->
   <ItemGroup>
-    <PackageReference Include="coverlet.msbuild" Version="2.9.0" PrivateAssets="All" />
+    <PackageReference Include="coverlet.msbuild" Version="6.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <PropertyGroup>
