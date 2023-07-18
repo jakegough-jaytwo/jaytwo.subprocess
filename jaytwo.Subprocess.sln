@@ -1,0 +1,72 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29418.71
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{12E34E1B-F2D4-4D8F-A572-09BA2336EFB3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{5F725C1D-5297-4DB3-A5D2-70DB34C0464C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jaytwo.Subprocess", "src\jaytwo.Subprocess\jaytwo.Subprocess.csproj", "{77C486BA-CECA-4321-84BD-FC571E32A194}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jaytwo.Subprocess.UnitTests", "test\jaytwo.Subprocess.UnitTests\jaytwo.Subprocess.UnitTests.csproj", "{ABC8BB42-E316-4921-9308-3B8C7FC958E5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4032478E-7288-43BA-A3A9-F20B407718C0}"
+	ProjectSection(SolutionItems) = preProject
+		.dockerignore = .dockerignore
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		Dockerfile = Dockerfile
+		Jenkinsfile = Jenkinsfile
+		LICENSE = LICENSE
+		Makefile = Makefile
+		stylecop.json = stylecop.json
+		stylecop.ruleset = stylecop.ruleset
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Debug|x64.Build.0 = Debug|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Debug|x86.Build.0 = Debug|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Release|x64.ActiveCfg = Release|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Release|x64.Build.0 = Release|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Release|x86.ActiveCfg = Release|Any CPU
+		{77C486BA-CECA-4321-84BD-FC571E32A194}.Release|x86.Build.0 = Release|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Debug|x64.Build.0 = Debug|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Debug|x86.Build.0 = Debug|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Release|x64.ActiveCfg = Release|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Release|x64.Build.0 = Release|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Release|x86.ActiveCfg = Release|Any CPU
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{77C486BA-CECA-4321-84BD-FC571E32A194} = {12E34E1B-F2D4-4D8F-A572-09BA2336EFB3}
+		{ABC8BB42-E316-4921-9308-3B8C7FC958E5} = {5F725C1D-5297-4DB3-A5D2-70DB34C0464C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {56E0D0CD-5767-4D1D-988E-C388A2DE403C}
+	EndGlobalSection
+EndGlobal
