@@ -1,5 +1,6 @@
 #pragma warning disable SA1407 // Arithmetic expressions must declare precedence
 #pragma warning disable SA1201 // Elements must appear in the correct order
+#pragma warning disable SA1601 // Partial elements should be documented
 
 using System;
 using System.Collections.Generic;
@@ -105,3 +106,4 @@ namespace jaytwo.Subprocess.Shim
 
 #pragma warning restore SA1407 // Arithmetic expressions must declare precedence
 #pragma warning restore SA1201 // Elements must appear in the correct order
+#pragma warning restore SA1601 // Partial elements should be documented

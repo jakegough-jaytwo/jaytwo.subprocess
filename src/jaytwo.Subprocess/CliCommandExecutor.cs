@@ -1,15 +1,34 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using jaytwo.Subprocess.Exceptions;
 
+#if NETSTANDARD
+using Microsoft.Extensions.Logging;
+#endif
+
 namespace jaytwo.Subprocess
 {
     public class CliCommandExecutor : ICliCommandExecutor
     {
-        private static TimeSpan DefaultTimeout { get; } = TimeSpan.FromSeconds(30);
+#if NETSTANDARD
+        private readonly ILogger<ICliCommandExecutor> _logger;
+
+        public CliCommandExecutor()
+            : this(default(ILogger<ICliCommandExecutor>))
+        {
+        }
+
+        public CliCommandExecutor(ILogger<ICliCommandExecutor> logger)
+        {
+            _logger = logger;
+        }
+#endif
+
+        private static TimeSpan DefaultTimeout { get; } = TimeSpan.FromSeconds(60);
 
         private static int[] DefaultExpectedExitCodes { get; } = new[] { 0 };
 
@@ -36,6 +55,9 @@ namespace jaytwo.Subprocess
         // with wisdom from https://stackoverflow.com/questions/1145969/processinfo-and-redirectstandardoutput
         private async Task<CliCommandResult> InnerExecute(CliCommand command, bool useAsync)
         {
+            var loggerId = new string(Guid.NewGuid().ToString().Replace("-", string.Empty).Take(10).ToArray());
+            LogCommand(loggerId, command);
+
             var processStartInfo = new ProcessStartInfo();
             processStartInfo.UseShellExecute = false; // false if the process should be created directly from the executable file (must be false for `RedirectStandardOutput = true` and `RedirectStandardError = true`)
             processStartInfo.RedirectStandardOutput = true; // true if output should be written to System.Diagnostics.Process.StandardOutput
@@ -124,9 +146,11 @@ namespace jaytwo.Subprocess
 
             result.Success = !timedOut && expectedExitCodes.Contains(exitCode);
 
+            LogResult(loggerId, result);
+
             if (result.TimedOut)
             {
-                throw new Exceptions.TimeoutException(result);
+                throw new ProcessTimeoutException(result);
             }
 
             if (!result.Success)
@@ -135,6 +159,57 @@ namespace jaytwo.Subprocess
             }
 
             return result;
+        }
+
+        private void LogCommand(string loggerId, CliCommand command)
+        {
+            LogLongString(loggerId, "Command", command.ToString());
+
+            if (!string.IsNullOrWhiteSpace(command.WorkingDirectory))
+            {
+                LogLongString(loggerId, nameof(command.WorkingDirectory), command.WorkingDirectory);
+            }
+        }
+
+        private void LogResult(string loggerId, CliCommandResult result)
+        {
+            var resultPhrase = result.TimedOut ? "TIMEOUT" : result.Success ? "OK" : "FAIL";
+
+            LogLongString(loggerId, "Result", $"{resultPhrase} (Duration: {result.Duration.TotalMilliseconds:n0} ms; Exit Code: {result.ExitCode})");
+
+            if (!string.IsNullOrWhiteSpace(result.StandardOutput))
+            {
+                LogLongString(loggerId, nameof(result.StandardOutput), result.StandardOutput);
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.StandardError))
+            {
+                LogLongString(loggerId, nameof(result.StandardError), result.StandardError);
+            }
+        }
+
+        private void LogLongString(string loggerId, string name, string value)
+        {
+            var maxLogLength = 2048;
+
+            var valueToLog = value?.Trim();
+            var disclaimer = string.Empty;
+
+            if (string.IsNullOrEmpty(valueToLog))
+            {
+                valueToLog = "(empty)";
+            }
+            else if (value.Length > maxLogLength)
+            {
+                valueToLog = new string(value.Take(maxLogLength).ToArray());
+                disclaimer = $" (truncated length to {maxLogLength}; originally {value.Length}) ";
+            }
+
+#if NETSTANDARD
+            _logger?.LogInformation($"{loggerId} {name}{disclaimer}: {valueToLog}");
+#else
+            // TODO: log for classic .NET Framework
+#endif
         }
     }
 }

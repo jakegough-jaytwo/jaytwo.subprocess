@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using jaytwo.Subprocess.Runtime;
+using jaytwo.RuntimeRevelation;
 using jaytwo.Subprocess.Shim;
 
 namespace jaytwo.Subprocess
@@ -50,6 +50,8 @@ namespace jaytwo.Subprocess
 
         public string WorkingDirectory { get; set; }
 
+        public IList<string> Secrets { get; set; } = new List<string>();
+
         public CliCommandBuilder WithRuntimeCondition(Func<RuntimeInformation, bool> runtimeCondition, Action<CliCommandBuilder> action)
         {
             var runtimeConditionMet = runtimeCondition.Invoke(RuntimeInfo);
@@ -64,9 +66,12 @@ namespace jaytwo.Subprocess
 
         public CliCommandBuilder WithArguments(object[] arguments)
         {
-            foreach (var argument in arguments)
+            if (arguments != null)
             {
-                WithArgument(argument);
+                foreach (var argument in arguments)
+                {
+                    WithArgument(argument);
+                }
             }
 
             return this;
@@ -74,9 +79,12 @@ namespace jaytwo.Subprocess
 
         public CliCommandBuilder WithArguments(string[] arguments)
         {
-            foreach (var argument in arguments)
+            if (arguments != null)
             {
-                WithArgument(argument);
+                foreach (var argument in arguments)
+                {
+                    WithArgument(argument);
+                }
             }
 
             return this;
@@ -144,6 +152,13 @@ namespace jaytwo.Subprocess
             return this;
         }
 
+        public CliCommandBuilder WithSecret(string secret)
+        {
+            Secrets.Add(secret);
+
+            return this;
+        }
+
         public CliCommand GetCommand()
         {
             var result = new CliCommand()
@@ -153,6 +168,7 @@ namespace jaytwo.Subprocess
                 WorkingDirectory = WorkingDirectory,
                 Timeout = Timeout,
                 ExpectedExitCodes = ExpectedExitCodes?.ToArray(),
+                Secrets = Secrets,
             };
 
             foreach (var environmentVariable in EnvironmentVariables)

@@ -5,11 +5,11 @@ using Xunit.Abstractions;
 
 namespace jaytwo.Subprocess.UnitTests
 {
-    public class BaselineTests
+    public class SubprocessTests
     {
         private readonly ITestOutputHelper _output;
 
-        public BaselineTests(ITestOutputHelper output)
+        public SubprocessTests(ITestOutputHelper output)
         {
             _output = output;
         }
@@ -26,7 +26,7 @@ namespace jaytwo.Subprocess.UnitTests
         public async Task ExecuteAsync_captures_exit_code(int exitCode)
         {
             // arrange
-            var command = new CliCommandBuilder("node", "-e")
+            var command = new CliCommandBuilder("node", "-e") // TODO: find something that we can invoke via CLI that will exist on both windows and non-windows systems
                 .WithArgument("process.exit({0})", exitCode)
                 .WithExpectedExitCodes(exitCode)
                 .GetCommand();
@@ -204,6 +204,25 @@ namespace jaytwo.Subprocess.UnitTests
             // assert
             Assert.Equal(expectedTimedOut, result.Duration.TotalMilliseconds > timeoutMilliseconds);
             Assert.Equal(expectedTimedOut, result.TimedOut);
+        }
+
+        [Fact]
+        public void Secrets_are_not_written_in_ToString()
+        {
+            // arrange
+            var secret = "rosebudwasthesled";
+
+            var command = new CliCommandBuilder("node", "-e")
+                .WithArgument("console.log('hello, the secret is: {0}')", secret)
+                .WithSecret(secret)
+                .GetCommand();
+
+            // act
+            var commandText = command.ToString();
+
+            // assert
+            Assert.DoesNotContain(secret, commandText);
+            Assert.Equal("node -e \"console.log('hello, the secret is: ****')\"", commandText);
         }
     }
 }

@@ -1,24 +1,20 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:2.1 AS dotnet-sdk
-#FROM mcr.microsoft.com/dotnet/core/runtime:2.1-alpine AS dotnet-runtime
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS dotnet-sdk
 
 FROM dotnet-sdk AS base
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
+# Install Make for makefile support
     make \
-    mono-devel \
-# nodejs-legacy is to maintain invoking via `nodejs` as well as `node`
-    nodejs nodejs-legacy \
+# Install Node (for some unit test cases)
+    nodejs \
   && apt-get clean \
+  && apt-get autoremove \
   && rm -rf /var/lib/apt/lists/*
-ENV FrameworkPathOverride /usr/lib/mono/4.5/
-ENV PATH="${PATH}:/root/.dotnet/tools"
 
+ENV PATH="${PATH}:/root/.dotnet/tools"
 
 FROM base AS builder
 WORKDIR /build
 COPY . /build
-RUN make deps restore
-
-
-FROM builder AS publisher
-RUN make publish
+RUN make deps restore build

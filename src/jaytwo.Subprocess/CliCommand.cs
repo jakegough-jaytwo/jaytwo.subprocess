@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace jaytwo.Subprocess
 {
@@ -17,6 +18,15 @@ namespace jaytwo.Subprocess
 
         public string WorkingDirectory { get; set; }
 
-        public override string ToString() => $"{FileName} {Arguments}".Trim();
+        public IList<string> Secrets { get; set; } = new List<string>();
+
+        public override string ToString()
+        {
+            var result = $"{FileName} {Arguments}".Trim();
+
+            Secrets?.Distinct().ToList().ForEach(x => result = result.Replace(x, "****"));
+
+            return result;
+        }
     }
 }

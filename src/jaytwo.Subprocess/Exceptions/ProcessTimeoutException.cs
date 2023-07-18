@@ -4,16 +4,16 @@ using System.Text;
 
 namespace jaytwo.Subprocess.Exceptions
 {
-    public class UnexpectedExitCodeException : SubprocessException
+    public class ProcessTimeoutException : SubprocessException
     {
-        public UnexpectedExitCodeException(CliCommandResult result)
+        public ProcessTimeoutException(CliCommandResult result)
             : base(result, GetMessage(result))
         {
         }
 
         private static string GetMessage(CliCommandResult result)
         {
-            return $"Unexpected Exit Code: {result.ExitCode}";
+            return $"Command timed out";
         }
     }
 }

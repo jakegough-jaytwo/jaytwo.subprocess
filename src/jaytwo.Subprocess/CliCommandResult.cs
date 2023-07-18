@@ -18,6 +18,6 @@ namespace jaytwo.Subprocess
 
         public bool TimedOut { get; set; }
 
-        public override string ToString() => string.Format("({0} {1:n0} ms) {2}", TimedOut ? "TIMEOUT" : Success ? "OK" : "FAIL", Duration.Milliseconds, Command);
+        public override string ToString() => string.Format("{0} ({1:n0} ms) {2}", TimedOut ? "TIMEOUT" : Success ? "OK" : $"FAIL (exit code {ExitCode})", Duration.TotalMilliseconds, Command);
     }
 }
