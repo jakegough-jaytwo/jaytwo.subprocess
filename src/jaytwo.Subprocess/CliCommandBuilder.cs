@@ -10,12 +10,12 @@ namespace jaytwo.Subprocess
     public class CliCommandBuilder
     {
         public CliCommandBuilder()
-            : this(null, null, RuntimeInformation.Current)
+            : this(string.Empty, Array.Empty<object>(), RuntimeInformation.Current)
         {
         }
 
         public CliCommandBuilder(string fileName)
-            : this(fileName, null, RuntimeInformation.Current)
+            : this(fileName, Array.Empty<object>(), RuntimeInformation.Current)
         {
         }
 
@@ -42,13 +42,13 @@ namespace jaytwo.Subprocess
 
         public IDictionary<string, string> EnvironmentVariables { get; } = new Dictionary<string, string>();
 
-        public IList<int> ExpectedExitCodes { get; set; }
+        public IList<int> ExpectedExitCodes { get; set; } = Array.Empty<int>();
 
-        public string FileName { get; set; }
+        public string? FileName { get; set; }
 
         public TimeSpan? Timeout { get; set; }
 
-        public string WorkingDirectory { get; set; }
+        public string? WorkingDirectory { get; set; }
 
         public IList<string> Secrets { get; set; } = new List<string>();
 
@@ -92,7 +92,7 @@ namespace jaytwo.Subprocess
 
         public CliCommandBuilder WithArgument(object argument)
         {
-            return WithArgument(argument?.ToString());
+            return WithArgument(argument?.ToString() ?? string.Empty);
         }
 
         public CliCommandBuilder WithArgument(string argument)
@@ -167,7 +167,7 @@ namespace jaytwo.Subprocess
                 Arguments = GetInlineArguments(Arguments),
                 WorkingDirectory = WorkingDirectory,
                 Timeout = Timeout,
-                ExpectedExitCodes = ExpectedExitCodes?.ToArray(),
+                ExpectedExitCodes = ExpectedExitCodes?.ToArray() ?? Array.Empty<int>(),
                 Secrets = Secrets,
             };
 

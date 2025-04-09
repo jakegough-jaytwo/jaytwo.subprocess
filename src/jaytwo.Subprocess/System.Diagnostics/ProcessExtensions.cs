@@ -34,13 +34,13 @@ namespace System.Diagnostics
                     taskCompletionSource.TrySetCanceled();
                 });
 
-                process.Exited += (sender, args) => taskCompletionSource.TrySetResult(null);
+                process.Exited += (sender, args) => taskCompletionSource.TrySetResult(null!);
 
                 // just in case the process has already exited before assigning the event
                 // (we don't want to check process.HasExited before setting the event becuase in the async world, the process can exit betwen the if check and wiring up the event handler)
                 if (process.HasExited)
                 {
-                    taskCompletionSource.TrySetResult(null);
+                    taskCompletionSource.TrySetResult(null!);
                 }
 
                 await taskCompletionSource.Task;

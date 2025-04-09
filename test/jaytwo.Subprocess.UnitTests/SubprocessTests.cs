@@ -101,7 +101,7 @@ namespace jaytwo.Subprocess.UnitTests
             _output.WriteLine("StandardOutput: {0}", result.StandardOutput?.Trim());
 
             // assert
-            expectedOutput = expectedOutput?.Replace("[newline]", Environment.NewLine);
+            expectedOutput = expectedOutput?.Replace("[newline]", Environment.NewLine) ?? string.Empty;
 
             Assert.Equal(expectedOutput ?? message, result.StandardOutput?.Trim());
         }

@@ -4,15 +4,15 @@ namespace jaytwo.Subprocess
 {
     public class CliCommandResult
     {
-        public CliCommand Command { get; set; }
+        public CliCommand? Command { get; set; }
 
         public TimeSpan Duration { get; set; }
 
         public int ExitCode { get; set; }
 
-        public string StandardError { get; set; }
+        public string? StandardError { get; set; }
 
-        public string StandardOutput { get; set; }
+        public string? StandardOutput { get; set; }
 
         public bool Success { get; set; }
 

@@ -5,28 +5,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using jaytwo.Subprocess.Exceptions;
-
-#if NETSTANDARD
 using Microsoft.Extensions.Logging;
-#endif
 
 namespace jaytwo.Subprocess
 {
     public class CliCommandExecutor : ICliCommandExecutor
     {
-#if NETSTANDARD
-        private readonly ILogger<ICliCommandExecutor> _logger;
+        private readonly ILogger? _logger;
 
         public CliCommandExecutor()
             : this(default(ILogger<ICliCommandExecutor>))
         {
         }
 
-        public CliCommandExecutor(ILogger<ICliCommandExecutor> logger)
+        public CliCommandExecutor(ILogger<ICliCommandExecutor>? logger)
         {
             _logger = logger;
         }
-#endif
 
         private static TimeSpan DefaultTimeout { get; } = TimeSpan.FromSeconds(60);
 
@@ -66,11 +61,7 @@ namespace jaytwo.Subprocess
 
             if (command.Environment != null)
             {
-#if NETFRAMEWORK
-                var startInfoEnvironmentVariables = processStartInfo.EnvironmentVariables;
-#else
                 var startInfoEnvironmentVariables = processStartInfo.Environment;
-#endif
 
                 foreach (var environmentVariable in command.Environment)
                 {
@@ -144,7 +135,7 @@ namespace jaytwo.Subprocess
                 ? command.ExpectedExitCodes
                 : DefaultExpectedExitCodes;
 
-            result.Success = !timedOut && expectedExitCodes.Contains(exitCode);
+            result.Success = !timedOut && expectedExitCodes!.Contains(exitCode);
 
             LogResult(loggerId, result);
 
@@ -192,24 +183,20 @@ namespace jaytwo.Subprocess
         {
             var maxLogLength = 2048;
 
-            var valueToLog = value?.Trim();
+            var valueToLog = value?.Trim() ?? string.Empty;
             var disclaimer = string.Empty;
 
             if (string.IsNullOrEmpty(valueToLog))
             {
                 valueToLog = "(empty)";
             }
-            else if (value.Length > maxLogLength)
+            else if (valueToLog.Length > maxLogLength)
             {
-                valueToLog = new string(value.Take(maxLogLength).ToArray());
-                disclaimer = $" (truncated length to {maxLogLength}; originally {value.Length}) ";
+                valueToLog = new string(valueToLog.Take(maxLogLength).ToArray());
+                disclaimer = $" (truncated length to {maxLogLength}; originally {value!.Length}) ";
             }
 
-#if NETSTANDARD
             _logger?.LogInformation($"{loggerId} {name}{disclaimer}: {valueToLog}");
-#else
-            // TODO: log for classic .NET Framework
-#endif
         }
     }
 }
