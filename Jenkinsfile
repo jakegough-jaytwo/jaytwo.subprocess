@@ -1,4 +1,4 @@
 library 'JenkinsBuilderLibrary'
 
-helper.loadNuGetProjectDefaults('jaytwo.Subprocess')
-helper.runNuGetProject()
+nugetProject.build(
+    gitHubRepository: 'jaytwo.Subprocess')
