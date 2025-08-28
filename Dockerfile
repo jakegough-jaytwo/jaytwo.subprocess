@@ -10,7 +10,7 @@ RUN apt-get update \
     nodejs \
     make \
   && apt-get clean \
-  && apt-get autoremove\
+  && apt-get autoremove \
   && rm -rf /var/lib/apt/lists/*
 
 FROM base AS builder
