@@ -7,6 +7,7 @@ ENV PATH="${PATH}:/root/.dotnet/tools"
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
+    nodejs \
     make \
   && apt-get clean \
   && apt-get autoremove\
