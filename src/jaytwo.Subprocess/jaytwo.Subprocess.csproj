@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net6.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0;net8.0</TargetFrameworks>
     <VersionPrefix>0.2.0</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/jakegough/jaytwo.subprocess.git</RepositoryUrl>
@@ -9,11 +9,11 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="jaytwo.RuntimeRevelation" Version="0.2.0" />
+    <PackageReference Include="jaytwo.RuntimeRevelation" Version="0.2.1-*" />
   </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.*" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.*" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
@@ -24,23 +24,10 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.*" />
   </ItemGroup>
 
-  <!--
-    // https://docs.microsoft.com/en-us/dotnet/standard/frameworks
-    // preprocessor symbols for free:
-    //    NETFRAMEWORK, NET45,
-    //    NETSTANDARD, NETSTANDARD1_1, NETSTANDARD1_3, NETSTANDARD1_6, NETSTANDARD2_0, NETSTANDARD2_1
-  -->
-
-  <!-- sourcelink (only needed on the published package project) -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <InternalsVisibleTo Include="jaytwo.Subprocess.UnitTests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" Link="README.md" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-  </PropertyGroup>
-  <!-- /sourcelink -->
 
 </Project>

@@ -179,7 +179,7 @@ namespace jaytwo.Subprocess
             }
         }
 
-        private void LogLongString(string loggerId, string name, string value)
+        private void LogLongString(string loggerId, string name, string? value)
         {
             var maxLogLength = 2048;
 
