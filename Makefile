@@ -51,11 +51,11 @@ unit-test:
 				--logger "trx;LogFileName=$$(basename $$dir).trx"; \
 	done
 	reportgenerator \
-		"-reports:${BUILD_TEST_COVERAGE_DIR}/**/coverage.cobertura.xml" \
+		"-reports:${BUILD_TEST_COVERAGE_DIR}/**/*.cobertura.xml" \
 		"-targetdir:${BUILD_TEST_COVERAGE_DIR}/" \
 		"-reportTypes:Cobertura"
 	reportgenerator \
-		"-reports:${BUILD_TEST_COVERAGE_DIR}/**/coverage.cobertura.xml" \
+		"-reports:${BUILD_TEST_COVERAGE_DIR}/**/*.cobertura.xml" \
 		"-targetdir:${BUILD_TEST_COVERAGE_DIR}/html" \
 		"-reportTypes:Html"
 
@@ -65,7 +65,7 @@ pack:
 		[ -n "$$dir" ] \
 			&& cd "${TOPDIR}" \
 			&& cd "$$dir" \
-			&& dotnet pack -o "${BUILD_PACKED_DIR}" ${PACK_ARG}; \
+			&& dotnet pack -o "${BUILD_PACKED_DIR}" -p:ContinuousIntegrationBuild=true ${PACK_ARG}; \
 	done
 
 pack-beta: PACK_ARG=--version-suffix beta-${TIMESTAMP}
