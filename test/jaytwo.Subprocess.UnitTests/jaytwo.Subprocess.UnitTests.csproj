@@ -1,11 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net6.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net10.0;net8.0;net6.0;netcoreapp3.1</TargetFrameworks>
+    <!-- net48 exercises the netstandard2.0 build (taskkill-based tree termination) -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net48</TargetFrameworks>
+    <!-- these tests spawn process trees against short timeouts: run TFMs and test classes one at a time so CPU contention cannot cause flakes -->
+    <TestTfmsInParallel>false</TestTfmsInParallel>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\jaytwo.Subprocess\jaytwo.Subprocess.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

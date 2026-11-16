@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace jaytwo.Subprocess
@@ -22,6 +23,26 @@ namespace jaytwo.Subprocess
         public static CliCommandResult Execute(this CliCommand command, bool suppressCommandLineExceptions, ICliCommandExecutor executor)
         {
             return executor.Execute(command, suppressCommandLineExceptions);
+        }
+
+        public static CliCommandResult Execute(this CliCommand command, CancellationToken cancellationToken)
+        {
+            return new CliCommandExecutor().Execute(command, cancellationToken);
+        }
+
+        public static CliCommandResult Execute(this CliCommand command, CancellationToken cancellationToken, ICliCommandExecutor executor)
+        {
+            return executor.Execute(command, cancellationToken);
+        }
+
+        public static Task<CliCommandResult> ExecuteAsync(this CliCommand command, CancellationToken cancellationToken)
+        {
+            return new CliCommandExecutor().ExecuteAsync(command, cancellationToken);
+        }
+
+        public static Task<CliCommandResult> ExecuteAsync(this CliCommand command, CancellationToken cancellationToken, ICliCommandExecutor executor)
+        {
+            return executor.ExecuteAsync(command, cancellationToken);
         }
 
         public static Task<CliCommandResult> ExecuteAsync(this CliCommand command)

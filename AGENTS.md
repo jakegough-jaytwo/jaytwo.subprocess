@@ -46,3 +46,13 @@
 - Mirror the existing xUnit style: clear arrange/act/assert sections, descriptive behavior-oriented names, and separate sync/async coverage instead of hiding cases behind heavy abstraction.
 - Name test methods as `MethodName_does_behavior`, not `MethodName_WhenCondition_ThenOutcome`.
 - Use lowercase `// arrange`, `// act`, `// assert` section comments in every test method. Never omit a section - if a section has nothing to do, add a parenthetical note, e.g. `// arrange (no setup needed)` or `// act (no action needed)`. Always extract act calls into named variables; do not call the method under test inline inside an `Assert`.
+
+## Guides
+
+`docs/guides/` how-tos are kept honest by tests in `test/jaytwo.Subprocess.UnitTests/Guides/`.
+
+- Every C# fence in a guide that is a real sample must be preceded by `<!-- sample: id -->`. The same code must appear in a guide test between `// sample: id` and `// end sample`. `GuideSampleTests` fails when they differ (comparison is trimmed-line).
+- Change the guide and the matching test region together. Do not edit one without the other.
+- Prefer samples that run with `node` (via `TestWorkspace` scripts or `-e`) so CI does not need extra tools. Put paths, tokens and other placeholders in arrange; keep only the caller-facing API inside the sample region.
+- Do not put `using` directives inside a sample region (they are not valid inside a test method). Name required namespaces in the guide prose next to the sample when helpful.
+- When you add a new guide or a new sample, add a running test for it and confirm `GuideSampleTests` still passes.

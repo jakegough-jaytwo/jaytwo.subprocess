@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using jaytwo.RuntimeRevelation;
@@ -51,6 +52,18 @@ namespace jaytwo.Subprocess
         public string? WorkingDirectory { get; set; }
 
         public IList<string> Secrets { get; set; } = new List<string>();
+
+        public string? StandardInput { get; set; }
+
+        public Stream? StandardInputStream { get; set; }
+
+        public Encoding? StandardInputEncoding { get; set; }
+
+        public Encoding? StandardOutputEncoding { get; set; }
+
+        public Encoding? StandardErrorEncoding { get; set; }
+
+        public TimeSpan? OutputDrainTimeout { get; set; }
 
         public CliCommandBuilder WithRuntimeCondition(Func<RuntimeInformation, bool> runtimeCondition, Action<CliCommandBuilder> action)
         {
@@ -159,6 +172,39 @@ namespace jaytwo.Subprocess
             return this;
         }
 
+        public CliCommandBuilder WithStandardInput(string text, Encoding? encoding = null)
+        {
+            StandardInput = text;
+            StandardInputStream = null;
+            StandardInputEncoding = encoding;
+            return this;
+        }
+
+        public CliCommandBuilder WithStandardInput(Stream stream)
+        {
+            StandardInputStream = stream;
+            StandardInput = null;
+            return this;
+        }
+
+        public CliCommandBuilder WithStandardOutputEncoding(Encoding encoding)
+        {
+            StandardOutputEncoding = encoding;
+            return this;
+        }
+
+        public CliCommandBuilder WithStandardErrorEncoding(Encoding encoding)
+        {
+            StandardErrorEncoding = encoding;
+            return this;
+        }
+
+        public CliCommandBuilder WithOutputDrainTimeout(TimeSpan? outputDrainTimeout)
+        {
+            OutputDrainTimeout = outputDrainTimeout;
+            return this;
+        }
+
         public CliCommand GetCommand()
         {
             var result = new CliCommand()
@@ -169,6 +215,12 @@ namespace jaytwo.Subprocess
                 Timeout = Timeout,
                 ExpectedExitCodes = ExpectedExitCodes?.ToArray() ?? Array.Empty<int>(),
                 Secrets = Secrets,
+                StandardInput = StandardInput,
+                StandardInputStream = StandardInputStream,
+                StandardInputEncoding = StandardInputEncoding,
+                StandardOutputEncoding = StandardOutputEncoding,
+                StandardErrorEncoding = StandardErrorEncoding,
+                OutputDrainTimeout = OutputDrainTimeout,
             };
 
             foreach (var environmentVariable in EnvironmentVariables)

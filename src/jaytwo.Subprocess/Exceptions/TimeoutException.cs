@@ -4,6 +4,7 @@ using System.Text;
 
 namespace jaytwo.Subprocess.Exceptions
 {
+    [Obsolete("Nothing throws this; timeouts surface as ProcessTimeoutException, which does not embed output in its message.")]
     public class TimeoutException : SubprocessException
     {
         public TimeoutException(CliCommandResult result)

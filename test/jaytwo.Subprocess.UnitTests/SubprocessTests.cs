@@ -74,8 +74,8 @@ namespace jaytwo.Subprocess.UnitTests
         [InlineData("abc\"def", null)]
         [InlineData("abc'def", null)]
         [InlineData(@"abc\def", null)]
-        [InlineData("abc\ndef", "abc[newline]def")]
-        [InlineData("abc\rdef", "abc[newline]def")]
+        [InlineData("abc\ndef", null)]
+        [InlineData("abc\rdef", null)]
         [InlineData("`-=~!@#$%^&*()_+", null)]
         [InlineData("[];,./{}|:<>?", null)]
         public async Task ExecuteAsync_with_special_characters(string message, string expectedOutput)
@@ -101,7 +101,8 @@ namespace jaytwo.Subprocess.UnitTests
             _output.WriteLine("StandardOutput: {0}", result.StandardOutput?.Trim());
 
             // assert
-            expectedOutput = expectedOutput?.Replace("[newline]", Environment.NewLine) ?? message;
+            // output is captured verbatim, so embedded newline characters round-trip unchanged
+            expectedOutput = expectedOutput ?? message;
 
             Assert.Equal(expectedOutput, result.StandardOutput?.Trim());
         }
