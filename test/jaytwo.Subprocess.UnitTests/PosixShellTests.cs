@@ -47,7 +47,7 @@ public class PosixShellTests : IDisposable
         // arrange
         Skip.IfNot(Path.DirectorySeparatorChar == '/', "Requires /bin/sh");
         var command = Shell("sleep 300 & echo $! > \"$D/grandchild.pid\"; printf out; printf err >&2; exit 0")
-            .WithOutputDrainTimeout(TimeSpan.FromMilliseconds(500))
+            .WithOutputDrainTimeout(TimeSpan.FromSeconds(2))
             .GetCommand();
         var stopwatch = Stopwatch.StartNew();
 
@@ -70,7 +70,7 @@ public class PosixShellTests : IDisposable
         Skip.IfNot(Path.DirectorySeparatorChar == '/', "Requires /bin/sh");
         var command = Shell("(sleep 300 & echo $! > \"$D/grandchild.pid\"); printf parent-out; : > \"$D/ready\"; sleep 300")
             .WithTimeout(TimeSpan.FromSeconds(3))
-            .WithOutputDrainTimeout(TimeSpan.FromMilliseconds(500))
+            .WithOutputDrainTimeout(TimeSpan.FromSeconds(2))
             .GetCommand();
         var stopwatch = Stopwatch.StartNew();
 

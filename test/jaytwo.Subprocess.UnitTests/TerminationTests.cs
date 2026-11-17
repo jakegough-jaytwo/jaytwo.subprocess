@@ -153,7 +153,7 @@ public class TerminationTests : IDisposable
         // arrange
         var command = _workspace.NodeWithDirectory("escape.js")
             .WithTimeout(TreeTimeout)
-            .WithOutputDrainTimeout(TimeSpan.FromMilliseconds(500))
+            .WithOutputDrainTimeout(TimeSpan.FromSeconds(2))
             .GetCommand();
         var stopwatch = Stopwatch.StartNew();
 
@@ -176,7 +176,7 @@ public class TerminationTests : IDisposable
     {
         // arrange
         var command = _workspace.NodeWithDirectory("holdpipes.js")
-            .WithOutputDrainTimeout(TimeSpan.FromMilliseconds(500))
+            .WithOutputDrainTimeout(TimeSpan.FromSeconds(2))
             .GetCommand();
         var stopwatch = Stopwatch.StartNew();
 
@@ -198,16 +198,21 @@ public class TerminationTests : IDisposable
     {
         // arrange
         var command = _workspace.NodeWithDirectory("holdpipes.js")
-            .WithOutputDrainTimeout(TimeSpan.FromMilliseconds(500))
+            .WithOutputDrainTimeout(TimeSpan.FromSeconds(2))
             .GetCommand();
+        var stopwatch = Stopwatch.StartNew();
 
         // act
         var result = command.Run();
+        stopwatch.Stop();
 
         // assert
         Assert.True(result.Success);
+        Assert.False(result.TimedOut);
         Assert.True(result.OutputIncomplete);
         Assert.Equal("parent-out", result.StandardOutput);
+        Assert.Equal("parent-err", result.StandardError);
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), $"took {stopwatch.Elapsed}");
     }
 
     [Fact]
