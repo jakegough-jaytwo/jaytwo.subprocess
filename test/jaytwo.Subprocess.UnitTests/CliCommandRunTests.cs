@@ -58,17 +58,21 @@ public class CliCommandRunTests
     public async Task RunAsync_suppress_and_cancel_still_throws_when_canceled()
     {
         // arrange
-        var command = new CliCommandBuilder("node", "-e")
-            .WithArgument("while(true){}")
+        using var workspace = new TestWorkspace();
+        var command = workspace.NodeWithDirectory("pid.js", "hold")
             .WithTimeout(Timeout.InfiniteTimeSpan)
             .GetCommand();
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        using var cts = new CancellationTokenSource();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ProcessCanceledException>(
+        var execution = TestWorkspace.CaptureAsync<ProcessCanceledException>(
             () => command.RunAsync(suppressCommandLineExceptions: true, cts.Token));
+        var ready = await workspace.WaitForFileAsync("pid.pid");
+        cts.Cancel();
+        var exception = await execution;
 
         // assert
+        Assert.True(ready);
         Assert.NotNull(exception);
         Assert.True(exception.Result.Canceled);
     }
@@ -131,16 +135,21 @@ public class CliCommandRunTests
     }
 
     [Fact]
-    public void Run_suppression_still_throws_when_canceled()
+    public async Task Run_suppression_still_throws_when_canceled()
     {
         // arrange
-        var command = new CliCommandBuilder("node", "-e", "while(true){}").GetCommand();
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        using var workspace = new TestWorkspace();
+        var command = workspace.NodeWithDirectory("pid.js", "hold").GetCommand();
+        using var cancellation = new CancellationTokenSource();
 
         // act
-        var exception = TestWorkspace.Capture<ProcessCanceledException>(() => command.Run(true, cancellation.Token));
+        var execution = Task.Run(() => TestWorkspace.Capture<ProcessCanceledException>(() => command.Run(true, cancellation.Token)));
+        var ready = await workspace.WaitForFileAsync("pid.pid");
+        cancellation.Cancel();
+        var exception = await execution;
 
         // assert
+        Assert.True(ready);
         Assert.True(exception.Result.Canceled);
     }
 

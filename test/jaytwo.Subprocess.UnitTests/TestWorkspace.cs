@@ -307,6 +307,23 @@ internal sealed class TestWorkspace : IDisposable
 
     public bool WaitForFile(string name) => WaitUntil(() => File.Exists(PathOf(name)), TimeSpan.FromSeconds(60));
 
+    public async Task<bool> WaitForFileAsync(string name)
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        while (!File.Exists(PathOf(name)))
+        {
+            if (stopwatch.Elapsed > TimeSpan.FromSeconds(60))
+            {
+                return false;
+            }
+
+            await Task.Delay(20);
+        }
+
+        return true;
+    }
+
     public int ReadProcessId(string pidFile) => int.Parse(File.ReadAllText(PathOf(pidFile)).Trim());
 
     public void Track(int processId)

@@ -59,6 +59,8 @@ Console.WriteLine("StandardError: {0}", result.StandardError);
 
 For stdin, encodings, timeouts, cancellation, secrets, platform-specific launch lines, and long-lived workers, start from the [guides](docs/guides/README.md).
 
+**Linux containers:** When using process-tree termination, configure an init/reaper for orphaned children: Docker `--init`, Compose `init: true`, or an init entrypoint in the application image for Kubernetes. See [Docker and Kubernetes deployment guidance](docs/guides/run-across-platforms.md#linux-containers-docker-and-kubernetes).
+
 ## Upgrading from 0.2.x
 
 Configure with `CliCommandBuilder`, materialize with `GetCommand()` or `CliCommand.Build(configure)`, then use `command.Run()` / `RunAsync()` for a completed result or `command.Start()` for a live `Streaming.CliProcessSession`. Static `CliCommand.Run(configure)`, `RunAsync(configure)`, and `Start(configure)` combine configuration and launch.

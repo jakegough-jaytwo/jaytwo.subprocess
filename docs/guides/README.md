@@ -10,7 +10,7 @@ Short how-tos for ordinary tasks with `jaytwo.Subprocess`. Guides describe usage
 | Decode stdout/stderr and spot incomplete capture | [Capture output](capture-output.md) |
 | Bound runtime, cancel a run, accept non-zero exits | [Timeouts, cancellation and exit codes](timeouts-cancellation-and-exit-codes.md) |
 | Keep passwords out of logs and `ToString` | [Mask secrets](mask-secrets.md) |
-| Pick a different launch line per OS | [Run across platforms](run-across-platforms.md) |
+| Pick a launch line per OS and configure Linux containers | [Run across platforms](run-across-platforms.md) |
 | Keep a worker process alive and talk to it live | [Talk to a long-lived worker](talk-to-a-long-lived-worker.md) |
 
 ## Conventions

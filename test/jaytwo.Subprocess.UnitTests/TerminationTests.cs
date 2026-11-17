@@ -9,7 +9,7 @@ namespace jaytwo.Subprocess.UnitTests;
 
 public class TerminationTests : IDisposable
 {
-    private static readonly TimeSpan TreeTimeout = TimeSpan.FromSeconds(10); // generous: the parent and descendant must both be up before it fires
+    private static readonly TimeSpan TreeTimeout = TimeSpan.FromSeconds(3); // allow both processes to start without making every timeout probe wait ten seconds
 
     private readonly TestWorkspace _workspace = new TestWorkspace();
 
@@ -63,11 +63,12 @@ public class TerminationTests : IDisposable
         var execution = TestWorkspace.CaptureAsync<ProcessCanceledException>(() => command.RunAsync(cancellation.Token));
 
         // act
-        Assert.True(_workspace.WaitForFile("ready"));
+        var ready = await _workspace.WaitForFileAsync("ready");
         cancellation.Cancel();
         var exception = await execution;
 
         // assert
+        Assert.True(ready);
         Assert.IsAssignableFrom<OperationCanceledException>(exception);
         Assert.True(exception.Result.Canceled);
         Assert.False(exception.Result.TimedOut);
@@ -87,11 +88,12 @@ public class TerminationTests : IDisposable
         var execution = Task.Run(() => TestWorkspace.Capture<ProcessCanceledException>(() => command.Run(cancellation.Token)));
 
         // act
-        Assert.True(_workspace.WaitForFile("ready"));
+        var ready = await _workspace.WaitForFileAsync("ready");
         cancellation.Cancel();
         var exception = await execution;
 
         // assert
+        Assert.True(ready);
         Assert.True(exception.Result.Canceled);
         Assert.Equal("parent-out", exception.Result.StandardOutput);
         Assert.True(TestWorkspace.WaitUntilDead(_workspace.ReadProcessId("parent.pid")), "parent survived");

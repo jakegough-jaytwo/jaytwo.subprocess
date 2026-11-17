@@ -80,6 +80,10 @@ if (result.TimedOut || !result.Success || result.TerminationFailed)
 
 `suppressCommandLineExceptions: true` returns the failure `Result` instead of throwing for timeout, unexpected exit and termination failure. It never swallows cancellation (`ProcessCanceledException`, or any result with `Canceled` set).
 
+## Linux container deployment
+
+Tree termination and reaping exited descendants are separate responsibilities. Configure a container init/reaper (Docker `--init`, Compose `init: true`, or an init entrypoint for Kubernetes) so killed descendants do not accumulate as zombies. See [Docker and Kubernetes deployment guidance](run-across-platforms.md#linux-containers-docker-and-kubernetes).
+
 ## Things to know
 
 - If the process exits on its own at the same moment a timeout or cancel fires, the natural exit wins; you never get both, and nothing hangs.

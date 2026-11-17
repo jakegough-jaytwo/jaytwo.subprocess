@@ -44,6 +44,8 @@ int exitCode = await session.WaitForExitAsync(token);   // cancel abandons the w
 
 `Dispose()` terminates the whole tree if it is still running and releases pipes and the stderr drain. Do not use `StandardInput` / `StandardOutput` after dispose.
 
+For workers in Linux containers, also configure an init/reaper so terminated descendants can be reaped. See [Docker and Kubernetes deployment guidance](run-across-platforms.md#linux-containers-docker-and-kubernetes).
+
 ## Options
 
 Configure a `CliCommand`, then call `Start()`, or use `CliCommand.Start(configure)`. `Start` rejects currently configured one-shot `Timeout`, `ExpectedExitCodes`, stdin text/stream, and `OutputDrainTimeout`; clear those settings before starting a session. An ordinary built command leaves them unset. `TerminateTimeout` controls the session's wait after tree termination and is rejected by `Run` / `RunAsync`. For already-quoted launch arguments, set `CliCommand.Arguments` directly. `session.Command` retains the masked launch line captured before start.

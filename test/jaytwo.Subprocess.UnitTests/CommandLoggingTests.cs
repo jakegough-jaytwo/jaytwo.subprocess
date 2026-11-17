@@ -159,18 +159,22 @@ public class CommandLoggingTests : IDisposable
     }
 
     [Fact]
-    public void Run_preserves_cancellation_when_result_logging_throws_and_exceptions_are_suppressed()
+    public async Task Run_preserves_cancellation_when_result_logging_throws_and_exceptions_are_suppressed()
     {
         // arrange
-        var command = new CliCommandBuilder("node", "-e", "while(true){}")
+        var command = _workspace.NodeWithDirectory("pid.js", "hold")
             .WithLogger(ThrowingResultLogger("Result"))
             .GetCommand();
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        using var cancellation = new CancellationTokenSource();
 
         // act
-        var exception = TestWorkspace.Capture<ProcessCanceledException>(() => command.Run(true, cancellation.Token));
+        var execution = Task.Run(() => TestWorkspace.Capture<ProcessCanceledException>(() => command.Run(true, cancellation.Token)));
+        var ready = await _workspace.WaitForFileAsync("pid.pid");
+        cancellation.Cancel();
+        var exception = await execution;
 
         // assert
+        Assert.True(ready);
         Assert.True(exception.Result.Canceled);
         var processId = Assert.IsType<int>(exception.Result.ProcessId);
         Assert.True(TestWorkspace.WaitUntilDead(processId));
@@ -180,15 +184,19 @@ public class CommandLoggingTests : IDisposable
     public async Task RunAsync_preserves_cancellation_when_result_logging_throws_and_exceptions_are_suppressed()
     {
         // arrange
-        var command = new CliCommandBuilder("node", "-e", "while(true){}")
+        var command = _workspace.NodeWithDirectory("pid.js", "hold")
             .WithLogger(ThrowingResultLogger("Result"))
             .GetCommand();
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        using var cancellation = new CancellationTokenSource();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ProcessCanceledException>(() => command.RunAsync(true, cancellation.Token));
+        var execution = TestWorkspace.CaptureAsync<ProcessCanceledException>(() => command.RunAsync(true, cancellation.Token));
+        var ready = await _workspace.WaitForFileAsync("pid.pid");
+        cancellation.Cancel();
+        var exception = await execution;
 
         // assert
+        Assert.True(ready);
         Assert.True(exception.Result.Canceled);
         var processId = Assert.IsType<int>(exception.Result.ProcessId);
         Assert.True(TestWorkspace.WaitUntilDead(processId));
