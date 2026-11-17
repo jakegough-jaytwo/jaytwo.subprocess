@@ -7,8 +7,7 @@ It starts the process with stdin/stdout open and gives you the streams, a bounde
 <!-- sample: session-basic -->
 ```csharp
 using var session = CliProcessSession.Start(
-    new CliCommandBuilder("node", workerScript, outputDirectory)
-        .GetProcessOptions());
+    new CliCommandBuilder("node", workerScript, outputDirectory));
 session.StandardInput.NewLine = "\n";
 
 await session.StandardInput.WriteLineAsync(request);
@@ -47,21 +46,19 @@ int exitCode = await session.WaitForExitAsync(token);   // cancel abandons the w
 
 ## Options
 
-`CliProcessOptions` has only launch and terminate settings: file name, arguments, working directory, environment, secrets, encodings and `TerminateTimeout`. There is no one-shot `Timeout`, `ExpectedExitCodes` or stdin blob; those belong on `CliCommand`. Prefer `CliCommandBuilder.GetProcessOptions()` so quoting and launch settings match one-shot runs. `new CliProcessOptions(fileName, arguments)` still accepts an already-quoted argument string when you build options by hand.
+`CliProcessOptions` has only launch and terminate settings: file name, arguments, working directory, environment, secrets, encodings and `TerminateTimeout`. There is no one-shot `Timeout`, `ExpectedExitCodes` or stdin blob; those belong on `CliCommand`. Prefer `CliProcessSession.Start(builder)` (or `Start(configure)`) so quoting and launch settings match one-shot runs. `GetProcessOptions()` is still available when you need the options object. `new CliProcessOptions(fileName, arguments)` accepts an already-quoted argument string when you build options by hand.
 
 <!-- sample: session-options -->
 ```csharp
-var options = new CliCommandBuilder("node", workerScript, outputDirectory)
-    .WithWorkingDirectory(workerDirectory)
-    .WithEnvironmentVariable("NODE_ENV", "test")
-    .GetProcessOptions();
-options.TerminateTimeout = TimeSpan.FromSeconds(10);
-
-using var session = CliProcessSession.Start(options);
+using var session = CliProcessSession.Start(
+    new CliCommandBuilder("node", workerScript, outputDirectory)
+        .WithWorkingDirectory(workerDirectory)
+        .WithEnvironmentVariable("NODE_ENV", "test")
+        .WithTerminateTimeout(TimeSpan.FromSeconds(10)));
 ```
 
 ## Things to know
 
 - `StandardError` is the last 64K characters of stderr, drained continuously so a chatty worker cannot block on a full pipe.
 - Restarting a dead worker, correlating requests and per-request deadlines belong to the caller.
-- Prefer `GetProcessOptions()` when starting a session from a builder. See [Pass arguments](pass-arguments.md).
+- Prefer `CliProcessSession.Start(builder)` when starting a session from a builder. See [Pass arguments](pass-arguments.md).

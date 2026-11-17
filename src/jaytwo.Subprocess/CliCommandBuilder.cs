@@ -66,6 +66,12 @@ namespace jaytwo.Subprocess
 
         public TimeSpan? OutputDrainTimeout { get; set; }
 
+        /// <summary>
+        /// How long a <see cref="CliProcessSession"/> waits after kill for the process to exit. Copied by
+        /// <see cref="GetProcessOptions"/>; rejected by <see cref="GetCommand"/>.
+        /// </summary>
+        public TimeSpan? TerminateTimeout { get; set; }
+
         public CliCommandBuilder WithRuntimeCondition(Func<RuntimeInformation, bool> runtimeCondition, Action<CliCommandBuilder> action)
         {
             var runtimeConditionMet = runtimeCondition.Invoke(RuntimeInfo);
@@ -206,8 +212,20 @@ namespace jaytwo.Subprocess
             return this;
         }
 
+        public CliCommandBuilder WithTerminateTimeout(TimeSpan? terminateTimeout)
+        {
+            TerminateTimeout = terminateTimeout;
+            return this;
+        }
+
         public CliCommand GetCommand()
         {
+            if (TerminateTimeout.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "GetCommand cannot apply TerminateTimeout. Clear it for one-shot execution, or use GetProcessOptions() / CliProcessSession.Start for a session.");
+            }
+
             var result = new CliCommand()
             {
                 FileName = FileName,
@@ -234,8 +252,8 @@ namespace jaytwo.Subprocess
 
         /// <summary>
         /// Builds launch settings for a <see cref="CliProcessSession"/> from this builder's file name, quoted arguments,
-        /// working directory, environment, secrets and encodings. One-shot settings (stdin, timeout, expected exit codes,
-        /// output drain timeout) are not applied and cause <see cref="InvalidOperationException"/> if configured.
+        /// working directory, environment, secrets, encodings and terminate timeout. One-shot settings (stdin, timeout,
+        /// expected exit codes, output drain timeout) are not applied and cause <see cref="InvalidOperationException"/> if configured.
         /// </summary>
         public CliProcessOptions GetProcessOptions()
         {
@@ -256,6 +274,7 @@ namespace jaytwo.Subprocess
                 StandardInputEncoding = StandardInputEncoding,
                 StandardOutputEncoding = StandardOutputEncoding,
                 StandardErrorEncoding = StandardErrorEncoding,
+                TerminateTimeout = TerminateTimeout,
             };
 
             foreach (var environmentVariable in EnvironmentVariables)
@@ -300,7 +319,8 @@ namespace jaytwo.Subprocess
 
         public override string ToString()
         {
-            return GetCommand().ToString();
+            // Format the launch line directly so session-only settings (TerminateTimeout) do not make diagnostics throw.
+            return ProcessLaunchSpec.MaskSecrets(Secrets, $"{FileName} {GetInlineArguments(Arguments)}".Trim());
         }
 
         private static string GetInlineArguments(IList<string> argumentList)

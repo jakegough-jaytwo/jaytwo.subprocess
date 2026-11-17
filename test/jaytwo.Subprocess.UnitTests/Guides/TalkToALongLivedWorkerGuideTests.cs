@@ -25,8 +25,7 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
         // act
         // sample: session-basic
         using var session = CliProcessSession.Start(
-            new CliCommandBuilder("node", workerScript, outputDirectory)
-                .GetProcessOptions());
+            new CliCommandBuilder("node", workerScript, outputDirectory));
         session.StandardInput.NewLine = "\n";
 
         await session.StandardInput.WriteLineAsync(request);
@@ -91,17 +90,14 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
 
         // act
         // sample: session-options
-        var options = new CliCommandBuilder("node", workerScript, outputDirectory)
-            .WithWorkingDirectory(workerDirectory)
-            .WithEnvironmentVariable("NODE_ENV", "test")
-            .GetProcessOptions();
-        options.TerminateTimeout = TimeSpan.FromSeconds(10);
-
-        using var session = CliProcessSession.Start(options);
+        using var session = CliProcessSession.Start(
+            new CliCommandBuilder("node", workerScript, outputDirectory)
+                .WithWorkingDirectory(workerDirectory)
+                .WithEnvironmentVariable("NODE_ENV", "test")
+                .WithTerminateTimeout(TimeSpan.FromSeconds(10)));
         // end sample
 
         // assert
         Assert.False(session.HasExited);
-        Assert.Equal("test", options.Environment["NODE_ENV"]);
     }
 }

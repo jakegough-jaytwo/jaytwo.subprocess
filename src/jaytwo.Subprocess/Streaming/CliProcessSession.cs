@@ -16,7 +16,7 @@ namespace jaytwo.Subprocess.Streaming;
 /// are borrowed from the session and must not be used after Dispose.
 ///
 /// This is the escape hatch for live streaming; for "run a tool and get its output" use <see cref="CliCommand"/>.
-/// Settings come from <see cref="CliProcessOptions"/>.
+/// Settings come from <see cref="CliProcessOptions"/>, or from a <see cref="CliCommandBuilder"/> via <see cref="Start(CliCommandBuilder)"/>.
 /// </summary>
 public sealed class CliProcessSession : IDisposable
 {
@@ -70,6 +70,35 @@ public sealed class CliProcessSession : IDisposable
     public string StandardError => _standardErrorPump.GetText();
 
     public bool HasExited => _exited.Task.IsCompleted;
+
+    /// <summary>
+    /// Starts a session from a <see cref="CliCommandBuilder"/> (via <see cref="CliCommandBuilder.GetProcessOptions"/>).
+    /// </summary>
+    public static CliProcessSession Start(CliCommandBuilder builder)
+    {
+        if (builder == null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
+        return Start(builder.GetProcessOptions());
+    }
+
+    /// <summary>
+    /// Starts a session by configuring a new <see cref="CliCommandBuilder"/> and converting it with
+    /// <see cref="CliCommandBuilder.GetProcessOptions"/>.
+    /// </summary>
+    public static CliProcessSession Start(Action<CliCommandBuilder> configure)
+    {
+        if (configure == null)
+        {
+            throw new ArgumentNullException(nameof(configure));
+        }
+
+        var builder = new CliCommandBuilder();
+        configure(builder);
+        return Start(builder);
+    }
 
     public static CliProcessSession Start(CliProcessOptions options)
     {

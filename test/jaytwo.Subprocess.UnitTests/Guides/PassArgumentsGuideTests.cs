@@ -92,14 +92,14 @@ public class PassArgumentsGuideTests : IDisposable
 
         // act
         // sample: pass-arguments-session
-        var options = new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode)
-            .GetProcessOptions();
-
-        using var session = CliProcessSession.Start(options);
+        using var session = CliProcessSession.Start(
+            new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode));
         // end sample
 
         // assert
         Assert.False(session.HasExited);
-        Assert.Contains("--mode", options.Arguments);
+        Assert.Contains(
+            "--mode",
+            new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode).GetProcessOptions().Arguments);
     }
 }

@@ -154,6 +154,49 @@ public class CliCommandBuilderProcessOptionsTests : IDisposable
     }
 
     [Fact]
+    public void GetProcessOptions_copies_terminate_timeout()
+    {
+        // arrange
+        var builder = new CliCommandBuilder("node", "worker.js")
+            .WithTerminateTimeout(TimeSpan.FromSeconds(10));
+
+        // act
+        var options = builder.GetProcessOptions();
+
+        // assert
+        Assert.Equal(TimeSpan.FromSeconds(10), options.TerminateTimeout);
+    }
+
+    [Fact]
+    public void GetCommand_rejects_terminate_timeout()
+    {
+        // arrange
+        var builder = new CliCommandBuilder("tool").WithTerminateTimeout(TimeSpan.FromSeconds(10));
+
+        // act
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.GetCommand());
+
+        // assert
+        Assert.Contains(nameof(CliCommandBuilder.TerminateTimeout), exception.Message);
+        Assert.Contains("GetProcessOptions", exception.Message);
+    }
+
+    [Fact]
+    public void GetCommand_succeeds_after_terminate_timeout_is_cleared()
+    {
+        // arrange
+        var builder = new CliCommandBuilder("tool")
+            .WithTerminateTimeout(TimeSpan.FromSeconds(10))
+            .WithTerminateTimeout(null);
+
+        // act
+        var command = builder.GetCommand();
+
+        // assert
+        Assert.Equal("tool", command.FileName);
+    }
+
+    [Fact]
     public void GetProcessOptions_snapshots_environment_and_secrets()
     {
         // arrange
@@ -366,5 +409,19 @@ public class CliCommandBuilderProcessOptionsTests : IDisposable
 
         // assert
         Assert.Equal("tool", options.FileName);
+    }
+
+    [Fact]
+    public void ToString_works_when_terminate_timeout_is_set()
+    {
+        // arrange
+        var builder = new CliCommandBuilder("tool", "arg")
+            .WithTerminateTimeout(TimeSpan.FromSeconds(10));
+
+        // act
+        var text = builder.ToString();
+
+        // assert
+        Assert.Equal(builder.GetProcessOptions().ToString(), text);
     }
 }

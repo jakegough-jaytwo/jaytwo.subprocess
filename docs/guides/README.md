@@ -16,7 +16,7 @@ Short how-tos for ordinary tasks with `jaytwo.Subprocess`. Guides describe usage
 ## Conventions
 
 - Samples use placeholders such as `workingDirectory` and `token` for values you supply. Every guide sample is a running test; see below.
-- Prefer `CliCommandBuilder` then `GetCommand()`, then `Execute` / `ExecuteAsync`. For a process you keep alive, use `jaytwo.Subprocess.Streaming.CliProcessSession` instead.
+- Prefer `CliCommandBuilder` then `GetCommand()`, then `Execute` / `ExecuteAsync`. For a process you keep alive, pass the builder to `CliProcessSession.Start`.
 - By default an unexpected exit code, timeout or failed termination throws a `SubprocessException` subclass that carries the `CliCommandResult`. Cancellation always throws and is never swallowed by `suppressCommandLineExceptions`.
 
 ## Keeping guides honest

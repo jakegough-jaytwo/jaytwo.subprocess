@@ -299,9 +299,10 @@ internal sealed class TestWorkspace : IDisposable
     public Streaming.CliProcessOptions NodeOptions(string script, params string[] args)
     {
         // Node() installs a one-shot Timeout; clear it before GetProcessOptions.
-        var options = NodeWithDirectory(script, args).WithTimeout(null).GetProcessOptions();
-        options.TerminateTimeout = TimeSpan.FromSeconds(10);
-        return options;
+        return NodeWithDirectory(script, args)
+            .WithTimeout(null)
+            .WithTerminateTimeout(TimeSpan.FromSeconds(10))
+            .GetProcessOptions();
     }
 
     public bool WaitForFile(string name) => WaitUntil(() => File.Exists(PathOf(name)), TimeSpan.FromSeconds(60));

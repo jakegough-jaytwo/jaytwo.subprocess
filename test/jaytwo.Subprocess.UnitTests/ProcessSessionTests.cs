@@ -170,4 +170,58 @@ public class ProcessSessionTests : IDisposable
         // assert
         Assert.NotNull(exception);
     }
+
+    [Fact]
+    public async Task Start_accepts_a_command_builder()
+    {
+        // arrange
+        var builder = _workspace.NodeWithDirectory("worker.js")
+            .WithTimeout(null)
+            .WithTerminateTimeout(TimeSpan.FromSeconds(10));
+
+        // act
+        using var session = CliProcessSession.Start(builder);
+        session.StandardInput.NewLine = "\n";
+        await session.StandardInput.WriteLineAsync("ping");
+        var response = await session.StandardOutput.ReadLineAsync();
+
+        // assert
+        Assert.Equal("echo:ping", response);
+        Assert.False(session.HasExited);
+    }
+
+    [Fact]
+    public async Task Start_accepts_a_builder_configure_action()
+    {
+        // arrange
+        string workerScript = _workspace.PathOf("worker.js");
+        string outputDirectory = _workspace.Directory;
+
+        // act
+        using var session = CliProcessSession.Start(b => b
+            .WithFileName("node")
+            .WithArgument(workerScript)
+            .WithArgument(outputDirectory)
+            .WithTerminateTimeout(TimeSpan.FromSeconds(10)));
+        session.StandardInput.NewLine = "\n";
+        await session.StandardInput.WriteLineAsync("ping");
+        var response = await session.StandardOutput.ReadLineAsync();
+
+        // assert
+        Assert.Equal("echo:ping", response);
+    }
+
+    [Fact]
+    public void Start_from_builder_rejects_one_shot_settings()
+    {
+        // arrange
+        var builder = new CliCommandBuilder("node", _workspace.PathOf("worker.js"))
+            .WithTimeout(TimeSpan.FromSeconds(1));
+
+        // act
+        var exception = Assert.Throws<InvalidOperationException>(() => CliProcessSession.Start(builder));
+
+        // assert
+        Assert.Contains(nameof(CliCommandBuilder.Timeout), exception.Message);
+    }
 }

@@ -42,14 +42,12 @@ Environment entries are merged into the child's environment for that launch only
 
 ## Start a session from the builder
 
-When you need the same quoting for a long-lived session, build `CliProcessOptions` directly:
+When you need the same quoting for a long-lived session, pass the builder to `CliProcessSession.Start`:
 
 <!-- sample: pass-arguments-session -->
 ```csharp
-var options = new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode)
-    .GetProcessOptions();
-
-using var session = CliProcessSession.Start(options);
+using var session = CliProcessSession.Start(
+    new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode));
 ```
 
 
