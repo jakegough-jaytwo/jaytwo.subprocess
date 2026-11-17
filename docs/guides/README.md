@@ -1,0 +1,24 @@
+# Guides
+
+Short how-tos for ordinary tasks with `jaytwo.Subprocess`. Guides describe usage, not product rules: the [charter](../charter.md) and [scope](../scope.md) govern what belongs in the package.
+
+| Task | Guide |
+| --- | --- |
+| Run a tool and read its exit code and output | [Run a command](run-a-command.md) |
+| Build a safely quoted argument list | [Pass arguments](pass-arguments.md) |
+| Pipe text or bytes into stdin | [Feed standard input](feed-standard-input.md) |
+| Decode stdout/stderr and spot incomplete capture | [Capture output](capture-output.md) |
+| Bound runtime, cancel a run, accept non-zero exits | [Timeouts, cancellation and exit codes](timeouts-cancellation-and-exit-codes.md) |
+| Keep passwords out of logs and `ToString` | [Mask secrets](mask-secrets.md) |
+| Pick a launch line per OS and configure Linux containers | [Run across platforms](run-across-platforms.md) |
+| Keep a worker process alive and talk to it live | [Talk to a long-lived worker](talk-to-a-long-lived-worker.md) |
+
+## Conventions
+
+- Samples use placeholders such as `workingDirectory` and `token` for values you supply. Every guide sample is a running test; see below.
+- Configure with `CliCommandBuilder`, materialize with `GetCommand()` or `CliCommand.Build`, then use `Run` / `RunAsync` for a result or `Start` for a live session. Static `CliCommand.Run*` / `Start` accept a configure action.
+- By default an unexpected exit code, timeout or failed termination throws a `SubprocessException` subclass that carries the `CliCommandResult`. Cancellation always throws and is never swallowed by `suppressCommandLineExceptions`.
+
+## Keeping guides honest
+
+Every C# sample here is a running test. A sample is marked `<!-- sample: id -->` in the guide and `// sample: id` ... `// end sample` in [test/jaytwo.Subprocess.UnitTests/Guides/](../../test/jaytwo.Subprocess.UnitTests/Guides/), and `GuideSampleTests` fails when the two differ. Change both together.

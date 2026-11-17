@@ -3,7 +3,6 @@
 
 	<ItemGroup>
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-      <PackageReference Include="Moq" Version="4.10.1" />
       <PackageReference Include="xunit" Version="2.4.0" />
       <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
       <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
@@ -19,7 +18,6 @@
 	  <Exclude>[xunit.*]*</Exclude>
 	  <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
 	  <CoverletOutputFormat>cobertura</CoverletOutputFormat>
-	  <CoverletOutput>$(MSBuildThisFileDirectory)../out/coverage/$(AssemblyName)/$(TargetFramework)/</CoverletOutput>
 	</PropertyGroup>
 	<!-- /coverlet & cobertura -->
 

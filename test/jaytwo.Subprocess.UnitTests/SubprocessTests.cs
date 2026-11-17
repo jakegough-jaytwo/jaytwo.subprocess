@@ -23,16 +23,16 @@ namespace jaytwo.Subprocess.UnitTests
         [InlineData(63)]
         [InlineData(127)]
         [InlineData(255)]
-        public async Task ExecuteAsync_captures_exit_code(int exitCode)
+        public async Task RunAsync_captures_exit_code(int exitCode)
         {
             // arrange
             var command = new CliCommandBuilder("node", "-e") // TODO: find something that we can invoke via CLI that will exist on both windows and non-windows systems
-                .WithArgument("process.exit({0})", exitCode)
+                .WithFormattedArgument("process.exit({0})", exitCode)
                 .WithExpectedExitCodes(exitCode)
                 .GetCommand();
 
             // act
-            var result = await command.ExecuteAsync();
+            var result = await command.RunAsync();
 
             // (log)
             _output.WriteLine("Command: {0}", result.Command);
@@ -45,17 +45,17 @@ namespace jaytwo.Subprocess.UnitTests
         }
 
         [Fact]
-        public async Task ExecuteAsync_processes_input_arguments_and_captures_standard_output()
+        public async Task RunAsync_processes_input_arguments_and_captures_standard_output()
         {
             // arrange
             var message = "hello world";
 
             var command = new CliCommandBuilder("node", "-e")
-                .WithArgument("console.log('{0}')", message)
+                .WithFormattedArgument("console.log('{0}')", message)
                 .GetCommand();
 
             // act
-            var result = await command.ExecuteAsync();
+            var result = await command.RunAsync();
 
             // (log)
             _output.WriteLine("Command: {0}", result.Command);
@@ -74,11 +74,11 @@ namespace jaytwo.Subprocess.UnitTests
         [InlineData("abc\"def", null)]
         [InlineData("abc'def", null)]
         [InlineData(@"abc\def", null)]
-        [InlineData("abc\ndef", "abc[newline]def")]
-        [InlineData("abc\rdef", "abc[newline]def")]
+        [InlineData("abc\ndef", null)]
+        [InlineData("abc\rdef", null)]
         [InlineData("`-=~!@#$%^&*()_+", null)]
         [InlineData("[];,./{}|:<>?", null)]
-        public async Task ExecuteAsync_with_special_characters(string message, string expectedOutput)
+        public async Task RunAsync_with_special_characters(string message, string expectedOutput)
         {
             // arrange
             var messageReadyForConsoleLog = message
@@ -88,36 +88,37 @@ namespace jaytwo.Subprocess.UnitTests
                 .Replace("\r", @"\r");
 
             var command = new CliCommandBuilder("node", "-e")
-                .WithArgument("console.log('{0}')", messageReadyForConsoleLog)
+                .WithFormattedArgument("console.log('{0}')", messageReadyForConsoleLog)
                 .GetCommand();
 
             // (log)
             _output.WriteLine("Command: {0}", command);
 
             // act
-            var result = await command.ExecuteAsync();
+            var result = await command.RunAsync();
 
             // (log)
             _output.WriteLine("StandardOutput: {0}", result.StandardOutput?.Trim());
 
             // assert
-            expectedOutput = expectedOutput?.Replace("[newline]", Environment.NewLine) ?? message;
+            // output is captured verbatim, so embedded newline characters round-trip unchanged
+            expectedOutput = expectedOutput ?? message;
 
             Assert.Equal(expectedOutput, result.StandardOutput?.Trim());
         }
 
         [Fact]
-        public async Task ExecuteAsync_input_arguments_and_captures_standard_error()
+        public async Task RunAsync_input_arguments_and_captures_standard_error()
         {
             // arrange
             var message = "hello world";
 
             var command = new CliCommandBuilder("node", "-e")
-                .WithArgument("console.error('{0}')", message)
+                .WithFormattedArgument("console.error('{0}')", message)
                 .GetCommand();
 
             // act
-            var result = await command.ExecuteAsync();
+            var result = await command.RunAsync();
 
             // (log)
             _output.WriteLine("Command: {0}", result.Command);
@@ -133,16 +134,16 @@ namespace jaytwo.Subprocess.UnitTests
         [Theory]
         [InlineData(5000, 100, true)]
         [InlineData(100, 5000, false)]
-        public async Task ExecuteAsync_processes_timeout(double sleepMilliseconds, double timeoutMilliseconds, bool expectedTimedOut)
+        public async Task RunAsync_processes_timeout(double sleepMilliseconds, double timeoutMilliseconds, bool expectedTimedOut)
         {
             // arrange
             var command = new CliCommandBuilder("node", "-e")
-                .WithArgument("setTimeout(function() {{ console.log('exiting as scheduled...'); process.exit(123); }}, {0});", sleepMilliseconds)
+                .WithFormattedArgument("setTimeout(function() {{ console.log('exiting as scheduled...'); process.exit(123); }}, {0});", sleepMilliseconds)
                 .WithTimeout(TimeSpan.FromMilliseconds(timeoutMilliseconds))
                 .GetCommand();
 
             // act
-            var result = await command.ExecuteAsync(true);
+            var result = await command.RunAsync(true);
 
             // (log)
             _output.WriteLine("Command: {0}", result.Command);
@@ -157,17 +158,17 @@ namespace jaytwo.Subprocess.UnitTests
         }
 
         [Fact]
-        public void Execute_works_non_async()
+        public void Run_works_non_async()
         {
             // arrange
             var message = "hello world";
 
             var command = new CliCommandBuilder("node", "-e")
-                .WithArgument("console.log('{0}')", message)
+                .WithFormattedArgument("console.log('{0}')", message)
                 .GetCommand();
 
             // act
-            var result = command.Execute();
+            var result = command.Run();
 
             // (log)
             _output.WriteLine("Command: {0}", result.Command);
@@ -183,16 +184,16 @@ namespace jaytwo.Subprocess.UnitTests
         [Theory]
         [InlineData(5000, 100, true)]
         [InlineData(100, 5000, false)]
-        public void Execute_processes_timeout_non_async(double sleepMilliseconds, double timeoutMilliseconds, bool expectedTimedOut)
+        public void Run_processes_timeout_non_async(double sleepMilliseconds, double timeoutMilliseconds, bool expectedTimedOut)
         {
             // arrange
             var command = new CliCommandBuilder("node", "-e")
-                .WithArgument("setTimeout(function() {{ console.log('exiting as scheduled...'); process.exit(123); }}, {0});", sleepMilliseconds)
+                .WithFormattedArgument("setTimeout(function() {{ console.log('exiting as scheduled...'); process.exit(123); }}, {0});", sleepMilliseconds)
                 .WithTimeout(TimeSpan.FromMilliseconds(timeoutMilliseconds))
                 .GetCommand();
 
             // act
-            var result = command.Execute(true);
+            var result = command.Run(true);
 
             // (log)
             _output.WriteLine("Command: {0}", result.Command);
@@ -213,7 +214,7 @@ namespace jaytwo.Subprocess.UnitTests
             var secret = "rosebudwasthesled";
 
             var command = new CliCommandBuilder("node", "-e")
-                .WithArgument("console.log('hello, the secret is: {0}')", secret)
+                .WithFormattedArgument("console.log('hello, the secret is: {0}')", secret)
                 .WithSecret(secret)
                 .GetCommand();
 
