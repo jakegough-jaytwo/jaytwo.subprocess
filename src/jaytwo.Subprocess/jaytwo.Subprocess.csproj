@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="jaytwo.Subprocess.UnitTests" />
+    <InternalsVisibleTo Include="jaytwo.Subprocess.UnitTests.NetStandard" />
     <None Include="..\..\README.md" Pack="true" PackagePath="" Link="README.md" />
   </ItemGroup>
 

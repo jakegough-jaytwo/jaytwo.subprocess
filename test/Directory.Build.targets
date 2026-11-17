@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <CoverletOutput>$(MSBuildThisFileDirectory)../out/coverage/$(AssemblyName)/$(TargetFramework)/</CoverletOutput>
+  </PropertyGroup>
+</Project>

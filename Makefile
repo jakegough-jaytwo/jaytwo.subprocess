@@ -1,6 +1,6 @@
 BUILD_SLN=./jaytwo.Subprocess.sln
 BUILD_DIRS=./src/jaytwo.Subprocess
-BUILD_TEST_DIRS=./test/jaytwo.Subprocess.UnitTests
+BUILD_TEST_DIRS=./test/jaytwo.Subprocess.UnitTests:./test/jaytwo.Subprocess.UnitTests.NetStandard
 ENABLE_COMPOSE_NETWORK=false
 
 NUGET_SOURCE_URL?=https://api.nuget.org/v3/index.json

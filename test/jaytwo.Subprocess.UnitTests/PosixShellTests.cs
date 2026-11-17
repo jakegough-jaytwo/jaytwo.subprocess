@@ -17,10 +17,11 @@ public class PosixShellTests : IDisposable
 
     public void Dispose() => _workspace.Dispose();
 
-    [PosixFact]
+    [SkippableFact]
     public async Task RunAsync_terminates_a_shell_and_its_background_descendant_on_timeout()
     {
         // arrange
+        Skip.IfNot(Path.DirectorySeparatorChar == '/', "Requires /bin/sh");
         var command = Shell(
             "echo $$ > \"$D/parent.pid\"; sleep 300 & echo $! > \"$D/grandchild.tmp\"; mv \"$D/grandchild.tmp\" \"$D/grandchild.pid\"; " +
             "printf parent-out; printf parent-err >&2; : > \"$D/ready\"; wait")
@@ -40,10 +41,11 @@ public class PosixShellTests : IDisposable
         Assert.True(TestWorkspace.WaitUntilDead(_workspace.ReadProcessId("grandchild.pid")), "descendant survived");
     }
 
-    [PosixFact]
+    [SkippableFact]
     public void Run_returns_within_the_drain_bound_when_a_background_descendant_holds_the_pipes_after_a_normal_exit()
     {
         // arrange
+        Skip.IfNot(Path.DirectorySeparatorChar == '/', "Requires /bin/sh");
         var command = Shell("sleep 300 & echo $! > \"$D/grandchild.pid\"; printf out; printf err >&2; exit 0")
             .WithOutputDrainTimeout(TimeSpan.FromMilliseconds(500))
             .GetCommand();
@@ -61,10 +63,11 @@ public class PosixShellTests : IDisposable
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), $"took {stopwatch.Elapsed}");
     }
 
-    [PosixFact]
+    [SkippableFact]
     public async Task RunAsync_bounds_the_wait_when_an_orphaned_descendant_holds_the_pipes_after_timeout()
     {
         // arrange: the subshell exits immediately, orphaning the sleep so tree termination cannot find it
+        Skip.IfNot(Path.DirectorySeparatorChar == '/', "Requires /bin/sh");
         var command = Shell("(sleep 300 & echo $! > \"$D/grandchild.pid\"); printf parent-out; : > \"$D/ready\"; sleep 300")
             .WithTimeout(TimeSpan.FromSeconds(3))
             .WithOutputDrainTimeout(TimeSpan.FromMilliseconds(500))
@@ -83,10 +86,11 @@ public class PosixShellTests : IDisposable
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), $"took {stopwatch.Elapsed}");
     }
 
-    [PosixFact]
+    [SkippableFact]
     public async Task RunAsync_feeds_large_stdin_while_stdout_and_stderr_are_both_active()
     {
         // arrange
+        Skip.IfNot(Path.DirectorySeparatorChar == '/', "Requires /bin/sh");
         var input = TestWorkspace.Generate(5, 3_000_000);
         var command = new CliCommandBuilder("/bin/sh", "-c", "tee /dev/stderr")
             .WithTimeout(TimeSpan.FromSeconds(60))
@@ -101,10 +105,11 @@ public class PosixShellTests : IDisposable
         Assert.Equal(input, result.StandardError);
     }
 
-    [PosixFact]
+    [SkippableFact]
     public async Task RunAsync_closes_stdin_so_eof_dependent_programs_finish()
     {
         // arrange
+        Skip.IfNot(Path.DirectorySeparatorChar == '/', "Requires /bin/sh");
         var command = new CliCommandBuilder("/bin/sh", "-c", "cat | wc -c")
             .WithTimeout(TimeSpan.FromSeconds(60))
             .WithStandardInput("12345")
