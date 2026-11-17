@@ -4,13 +4,13 @@
 
 <!-- sample: capture-basic -->
 ```csharp
-var command = new CliCommandBuilder("node", "-e")
+CliCommandResult result = await new CliCommandBuilder("node", "-e")
     .WithArgument("console.log('line1'); console.error('err1')")
-    .GetCommand();
-CliCommandResult result = await command.ExecuteAsync();
+    .GetCommand()
+    .RunAsync();
 
-string stdout = result.StandardOutput ?? string.Empty;
-string stderr = result.StandardError ?? string.Empty;
+string stdout = result.StandardOutput;
+string stderr = result.StandardError;
 ```
 
 ## Choose encodings
@@ -35,7 +35,7 @@ var command = new CliCommandBuilder("node", scriptPath, workingDirectory)
     .WithOutputDrainTimeout(TimeSpan.FromSeconds(2))
     .GetCommand();
 
-CliCommandResult result = await command.ExecuteAsync(suppressCommandLineExceptions: true);
+CliCommandResult result = await command.RunAsync(suppressCommandLineExceptions: true);
 
 if (result.OutputIncomplete)
 {

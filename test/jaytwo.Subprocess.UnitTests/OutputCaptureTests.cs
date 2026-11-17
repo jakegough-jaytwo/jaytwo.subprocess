@@ -13,14 +13,14 @@ public class OutputCaptureTests : IDisposable
     public void Dispose() => _workspace.Dispose();
 
     [Fact]
-    public async Task ExecuteAsync_captures_simultaneous_large_output_on_both_streams()
+    public async Task RunAsync_captures_simultaneous_large_output_on_both_streams()
     {
         // arrange
         var length = 1_000_000; // far beyond any pipe buffer, interleaved so a sequential reader would deadlock
         var command = _workspace.Node("emit.js", length.ToString()).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal(TestWorkspace.Generate(0, length), result.StandardOutput);
@@ -29,14 +29,14 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public void Execute_captures_simultaneous_large_output_on_both_streams()
+    public void Run_captures_simultaneous_large_output_on_both_streams()
     {
         // arrange
         var length = 1_000_000;
         var command = _workspace.Node("emit.js", length.ToString()).GetCommand();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
 
         // assert
         Assert.Equal(TestWorkspace.Generate(0, length), result.StandardOutput);
@@ -44,13 +44,13 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_preserves_blank_lines_newline_sequences_and_missing_final_newline()
+    public async Task RunAsync_preserves_blank_lines_newline_sequences_and_missing_final_newline()
     {
         // arrange
         var command = _workspace.Node("exact.js").GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal("line1\n\nline3\r\n\r\nlast", result.StandardOutput);
@@ -58,13 +58,13 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public void Execute_preserves_blank_lines_newline_sequences_and_missing_final_newline()
+    public void Run_preserves_blank_lines_newline_sequences_and_missing_final_newline()
     {
         // arrange
         var command = _workspace.Node("exact.js").GetCommand();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
 
         // assert
         Assert.Equal("line1\n\nline3\r\n\r\nlast", result.StandardOutput);
@@ -74,7 +74,7 @@ public class OutputCaptureTests : IDisposable
     [Theory]
     [InlineData("utf8", "latin1")]
     [InlineData("latin1", "utf8")]
-    public async Task ExecuteAsync_decodes_stdout_and_stderr_with_separate_encodings(string stdoutEncoding, string stderrEncoding)
+    public async Task RunAsync_decodes_stdout_and_stderr_with_separate_encodings(string stdoutEncoding, string stderrEncoding)
     {
         // arrange
         var latin1 = Encoding.GetEncoding("iso-8859-1");
@@ -88,7 +88,7 @@ public class OutputCaptureTests : IDisposable
             .GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal(stdoutEncoding == "latin1" ? latinText : unicodeText, result.StandardOutput);
@@ -96,13 +96,13 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_preserves_both_streams_when_exit_code_is_unexpected()
+    public async Task RunAsync_preserves_both_streams_when_exit_code_is_unexpected()
     {
         // arrange
         var command = _workspace.Node("exit.js", "7").GetCommand();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<UnexpectedExitCodeException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<UnexpectedExitCodeException>(() => command.RunAsync());
 
         // assert
         Assert.Equal(7, exception.Result.ExitCode);
@@ -114,13 +114,13 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public void Execute_preserves_both_streams_when_exit_code_is_unexpected()
+    public void Run_preserves_both_streams_when_exit_code_is_unexpected()
     {
         // arrange
         var command = _workspace.Node("exit.js", "7").GetCommand();
 
         // act
-        var exception = TestWorkspace.Capture<UnexpectedExitCodeException>(() => command.Execute());
+        var exception = TestWorkspace.Capture<UnexpectedExitCodeException>(() => command.Run());
 
         // assert
         Assert.Equal(7, exception.Result.ExitCode);
@@ -129,13 +129,13 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_treats_listed_exit_codes_as_success()
+    public async Task RunAsync_treats_listed_exit_codes_as_success()
     {
         // arrange
         var command = _workspace.Node("exit.js", "7").WithExpectedExitCodes(0, 7).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.True(result.Success);
@@ -143,13 +143,13 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_returns_the_failure_result_when_exceptions_are_suppressed()
+    public async Task RunAsync_returns_the_failure_result_when_exceptions_are_suppressed()
     {
         // arrange
         var command = _workspace.Node("exit.js", "7").GetCommand();
 
         // act
-        var result = await command.ExecuteAsync(suppressCommandLineExceptions: true);
+        var result = await command.RunAsync(suppressCommandLineExceptions: true);
 
         // assert
         Assert.False(result.Success);
@@ -158,7 +158,7 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_passes_argument_edge_cases_through_unchanged()
+    public async Task RunAsync_passes_argument_edge_cases_through_unchanged()
     {
         // arrange
         var arguments = new[]
@@ -182,7 +182,7 @@ public class OutputCaptureTests : IDisposable
         var command = _workspace.Node("argv.js", arguments).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         var expected = arguments.Length + "\n" + string.Join("\n", Array.ConvertAll(arguments, x => TestWorkspace.ToHex(Encoding.UTF8.GetBytes(x))));
@@ -190,14 +190,14 @@ public class OutputCaptureTests : IDisposable
     }
 
     [Fact]
-    public void Execute_passes_argument_edge_cases_through_unchanged()
+    public void Run_passes_argument_edge_cases_through_unchanged()
     {
         // arrange
         var arguments = new[] { "plain", string.Empty, "with \"quotes\"", "trailing\\", "日本語" };
         var command = _workspace.Node("argv.js", arguments).GetCommand();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
 
         // assert
         var expected = arguments.Length + "\n" + string.Join("\n", Array.ConvertAll(arguments, x => TestWorkspace.ToHex(Encoding.UTF8.GetBytes(x))));

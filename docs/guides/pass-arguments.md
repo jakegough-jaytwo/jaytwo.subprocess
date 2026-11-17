@@ -1,17 +1,16 @@
 # Pass arguments
 
-`CliCommandBuilder` collects the file name and arguments, then `GetCommand()` produces a `CliCommand` whose `Arguments` string is already quoted for `ProcessStartInfo`.
+`CliCommandBuilder` collects the file name and arguments, then `GetCommand()` produces a launch line whose arguments are already quoted for `ProcessStartInfo`.
 
 <!-- sample: pass-arguments-basic -->
 ```csharp
-var command = new CliCommandBuilder("node", scriptPath)
+CliCommandResult result = await new CliCommandBuilder("node", scriptPath)
     .WithArgument("--message")
     .WithArgument(message)
     .WithWorkingDirectory(workingDirectory)
     .WithEnvironmentVariable("MY_TOOL_PROMPT", "0")
-    .GetCommand();
-
-CliCommandResult result = await command.ExecuteAsync();
+    .GetCommand()
+    .RunAsync();
 ```
 
 Arguments with spaces and special characters are quoted for you. Pass each logical argument separately; do not pre-join them into one string unless you intend a single argument.
@@ -21,11 +20,11 @@ Arguments with spaces and special characters are quoted for you. Pass each logic
 <!-- sample: pass-arguments-format -->
 ```csharp
 var command = new CliCommandBuilder("node", "-e")
-    .WithArgument("console.log('{0}')", message)
+    .WithFormattedArgument("console.log('{0}')", message)
     .GetCommand();
 ```
 
-`WithArgument(format, args)` is `string.Format` then one argument. Prefer it when the tool expects a single script or expression string.
+`WithFormattedArgument` is `string.Format` then one argument. Prefer it when the tool expects a single script or expression string. For two argv tokens, call `WithArgument` twice (or pass them to the constructor / `WithArguments`) — there is no `WithArgument(flag, value)` overload.
 
 ## Working directory and environment
 
@@ -42,12 +41,11 @@ Environment entries are merged into the child's environment for that launch only
 
 ## Start a session from the builder
 
-When you need the same quoting for a long-lived session, pass the builder to `CliProcessSession.Start`:
+When you need the same quoting for a long-lived session, materialize the command and call `Start`:
 
 <!-- sample: pass-arguments-session -->
 ```csharp
-using var session = CliProcessSession.Start(
-    new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode));
+using var session = new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode).GetCommand().Start();
 ```
 
 

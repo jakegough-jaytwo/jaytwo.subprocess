@@ -16,7 +16,7 @@ namespace jaytwo.Subprocess.Streaming;
 /// are borrowed from the session and must not be used after Dispose.
 ///
 /// This is the escape hatch for live streaming; for "run a tool and get its output" use <see cref="CliCommand"/>.
-/// Settings come from <see cref="CliProcessOptions"/>, or from a <see cref="CliCommandBuilder"/> via <see cref="Start(CliCommandBuilder)"/>.
+/// Start through <see cref="CliCommand.Start()"/> or <see cref="CliCommand.Start(Action{CliCommandBuilder})"/>.
 /// </summary>
 public sealed class CliProcessSession : IDisposable
 {
@@ -29,15 +29,22 @@ public sealed class CliProcessSession : IDisposable
     private readonly OutputPump _standardErrorPump;
     private readonly TaskCompletionSource<bool> _exited = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TimeSpan _terminateTimeout;
+    private readonly CommandDiagnostics _diagnostics;
     private int _disposed;
 
-    private CliProcessSession(Process process, CliProcessOptions options)
+    private CliProcessSession(Process process, CliCommand command, CommandDiagnostics diagnostics)
     {
         _process = process ?? throw new ArgumentNullException(nameof(process));
-        _terminateTimeout = options.TerminateTimeout ?? DefaultTerminateTimeout;
+        _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        _terminateTimeout = command.TerminateTimeout ?? DefaultTerminateTimeout;
 
         ProcessId = process.Id;
-        StandardInput = new StreamWriter(process.StandardInput.BaseStream, options.StandardInputEncoding ?? Utf8NoBom) { AutoFlush = true };
+        // LF: line protocols (bash/node/python workers) want \n even on Windows; Environment.NewLine would embed \r.
+        StandardInput = new StreamWriter(process.StandardInput.BaseStream, command.StandardInputEncoding ?? Utf8NoBom)
+        {
+            AutoFlush = true,
+            NewLine = "\n",
+        };
         StandardOutput = process.StandardOutput;
 
         // an undrained stderr pipe can block the worker once it fills, so the session always drains it (keeping only the tail)
@@ -48,18 +55,24 @@ public sealed class CliProcessSession : IDisposable
     public int ProcessId { get; }
 
     /// <summary>
+    /// The masked launch line captured before start.
+    /// </summary>
+    public string Command => _diagnostics.Command;
+
+    /// <summary>
     /// The live process, for telemetry such as sampling memory. Borrowed: do not dispose it or use its redirected streams.
     /// </summary>
     public Process Process => _process;
 
     /// <summary>
-    /// Writes to the worker's stdin. AutoFlush is on and the encoding is <see cref="CliProcessOptions.StandardInputEncoding"/> (default UTF-8, no BOM).
-    /// Set <c>NewLine</c> if the protocol needs a specific line ending. Disposing it closes stdin (EOF for the worker).
+    /// Writes to the worker's stdin. AutoFlush is on and the encoding is <see cref="CliCommand.StandardInputEncoding"/> (default UTF-8, no BOM).
+    /// <c>NewLine</c> defaults to <c>\n</c> (LF) for cross-platform line protocols; set it after start if you need CRLF.
+    /// Disposing it closes stdin (EOF for the worker).
     /// </summary>
     public StreamWriter StandardInput { get; }
 
     /// <summary>
-    /// Reads the worker's stdout, decoded with <see cref="CliProcessOptions.StandardOutputEncoding"/>. Returns null/0 at end of stream.
+    /// Reads the worker's stdout, decoded with <see cref="CliCommand.StandardOutputEncoding"/>. Returns null/0 at end of stream.
     /// A pending read cannot be cancelled; call <see cref="Terminate"/> to unblock it.
     /// </summary>
     public StreamReader StandardOutput { get; }
@@ -70,88 +83,6 @@ public sealed class CliProcessSession : IDisposable
     public string StandardError => _standardErrorPump.GetText();
 
     public bool HasExited => _exited.Task.IsCompleted;
-
-    /// <summary>
-    /// Starts a session from a <see cref="CliCommandBuilder"/> (via <see cref="CliCommandBuilder.GetProcessOptions"/>).
-    /// </summary>
-    public static CliProcessSession Start(CliCommandBuilder builder)
-    {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        return Start(builder.GetProcessOptions());
-    }
-
-    /// <summary>
-    /// Starts a session by configuring a new <see cref="CliCommandBuilder"/> and converting it with
-    /// <see cref="CliCommandBuilder.GetProcessOptions"/>.
-    /// </summary>
-    public static CliProcessSession Start(Action<CliCommandBuilder> configure)
-    {
-        if (configure == null)
-        {
-            throw new ArgumentNullException(nameof(configure));
-        }
-
-        var builder = new CliCommandBuilder();
-        configure(builder);
-        return Start(builder);
-    }
-
-    public static CliProcessSession Start(CliProcessOptions options)
-    {
-        if (options == null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
-
-        ProcessLauncher.ValidateTimeout(options.TerminateTimeout, nameof(CliProcessOptions.TerminateTimeout));
-        ProcessTree.EnsureSupported();
-
-        var process = new Process { StartInfo = ProcessLauncher.CreateStartInfo(options.ToLaunchSpec(), redirectInput: true), EnableRaisingEvents = true };
-
-        try
-        {
-            process.Start();
-        }
-        catch
-        {
-            process.Dispose();
-            throw;
-        }
-
-        CliProcessSession? session = null;
-
-        try
-        {
-            session = new CliProcessSession(process, options);
-            process.Exited += (sender, e) => session._exited.TrySetResult(true);
-
-            // Exited may have fired before the handler was attached
-            if (process.HasExited)
-            {
-                session._exited.TrySetResult(true);
-            }
-
-            return session;
-        }
-        catch
-        {
-            if (session != null)
-            {
-                session.Dispose();
-            }
-            else
-            {
-                ProcessTree.TryTerminate(process);
-                process.Dispose();
-            }
-
-            throw;
-        }
-    }
 
     /// <summary>
     /// Waits for the process to exit and returns its exit code. Cancelling the token only abandons the wait (throwing
@@ -177,7 +108,7 @@ public sealed class CliProcessSession : IDisposable
     }
 
     /// <summary>
-    /// Terminates the process and all of its descendants, then waits (bounded by <see cref="CliProcessOptions.TerminateTimeout"/>) for it to exit.
+    /// Terminates the process and all of its descendants, then waits (bounded by <see cref="CliCommand.TerminateTimeout"/>) for it to exit.
     /// Safe to call repeatedly, from any thread (including a cancellation callback), and when the process already exited.
     /// Never throws for a process that will not die: if it is still running after the wait, <see cref="HasExited"/> stays false.
     /// </summary>
@@ -190,6 +121,7 @@ public sealed class CliProcessSession : IDisposable
 
         ProcessTree.TryTerminate(_process);
         _exited.Task.Wait(_terminateTimeout);
+        _diagnostics.LogTermination(ProcessId, HasExited);
     }
 
     public void Dispose()
@@ -203,6 +135,7 @@ public sealed class CliProcessSession : IDisposable
         {
             ProcessTree.TryTerminate(_process);
             _exited.Task.Wait(_terminateTimeout);
+            _diagnostics.LogTermination(ProcessId, HasExited);
         }
         catch
         {
@@ -221,6 +154,64 @@ public sealed class CliProcessSession : IDisposable
             {
                 _process.Dispose();
             }
+        }
+    }
+
+    internal static CliProcessSession Create(CliCommand command)
+    {
+        ProcessLauncher.ValidateTimeout(command.TerminateTimeout, nameof(CliCommand.TerminateTimeout));
+        ProcessTree.EnsureSupported();
+
+        var diagnostics = new CommandDiagnostics(command);
+        diagnostics.LogCommand("Session");
+        var process = new Process { StartInfo = ProcessLauncher.CreateStartInfo(command.ToLaunchSpec(), redirectInput: true), EnableRaisingEvents = true };
+
+        try
+        {
+            process.Start();
+        }
+        catch
+        {
+            process.Dispose();
+            throw;
+        }
+
+        CliProcessSession? session = null;
+
+        try
+        {
+            session = new CliProcessSession(process, command, diagnostics);
+            process.Exited += (sender, e) => session._exited.TrySetResult(true);
+
+            // Exited may have fired before the handler was attached
+            if (process.HasExited)
+            {
+                session._exited.TrySetResult(true);
+            }
+
+            diagnostics.LogStarted(session.ProcessId);
+            return session;
+        }
+        catch
+        {
+            if (session != null)
+            {
+                session.Dispose();
+            }
+            else
+            {
+                try
+                {
+                    ProcessTree.TryTerminate(process);
+                    process.WaitForExit((int)(command.TerminateTimeout ?? DefaultTerminateTimeout).TotalMilliseconds);
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+
+            throw;
         }
     }
 

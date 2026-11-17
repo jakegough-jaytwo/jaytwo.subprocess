@@ -1,43 +1,38 @@
 # Run across platforms
 
-When the same tool is launched differently on Windows and elsewhere, describe both paths with `WithRuntimeCondition`. Only the matching branch runs against the current `RuntimeInformation`.
+Some CLIs ship under different names (or as `.exe` / `.cmd` shims) depending on the OS. Keep the branch on the fluent builder with `When`, using BCL platform checks for the condition.
 
-A common case is an npm global CLI such as `yo`: a real executable on Unix, but a shell wrapper on Windows that needs `cmd /c yo`. The samples below branch on platform the same way (using `node` so they run everywhere):
+`where` (Windows) and `which` (Unix) are the same idea: find an executable on `PATH`. The sample looks up `node` so it runs in ordinary CI:
 
 <!-- sample: platform-branch -->
 ```csharp
-var command = new CliCommandBuilder()
-    .WithRuntimeCondition(x => x.Platform != OSPlatform.Windows, builder =>
-    {
-        builder.WithFileName("node").WithArguments(new[] { "-e", "console.log('unix')" });
-    })
-    .WithRuntimeCondition(x => x.Platform == OSPlatform.Windows, builder =>
-    {
-        builder.WithFileName("node").WithArguments(new[] { "-e", "console.log('windows')" });
-    })
-    .GetCommand();
-
-await command.ExecuteAsync();
+CliCommandResult result = await new CliCommandBuilder()
+    .When(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("where").WithArgument("node"))
+    .When(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("which").WithArgument("node"))
+    .GetCommand()
+    .RunAsync();
 ```
 
-Namespaces: `jaytwo.Subprocess`, `jaytwo.RuntimeRevelation` (`OSPlatform`).
+Namespaces: `jaytwo.Subprocess`, `System.Runtime.InteropServices` (`RuntimeInformation`, `OSPlatform`). Prefer `RuntimeInformation.IsOSPlatform` when you still target netstandard2.0 / .NET Framework; on modern TFMs `OperatingSystem.IsWindows()` is fine too.
+
+The same pattern covers npm-style Windows shims (`yo.cmd` / `cmd /c yo` vs a Unix `yo` on `PATH`): only the file name (and sometimes wrapping) changes.
 
 ## Shared setup after the branch
 
 <!-- sample: platform-shared -->
 ```csharp
 var command = new CliCommandBuilder()
-    .WithRuntimeCondition(x => x.Platform == OSPlatform.Windows, b => b.WithFileName("node").WithArguments(new[] { "-e", "console.log(process.argv[1])", name }))
-    .WithRuntimeCondition(x => x.Platform != OSPlatform.Windows, b => b.WithFileName("node").WithArguments(new[] { "-e", "console.log(process.argv[1])", name }))
+    .When(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("where").WithArgument(toolName))
+    .When(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("which").WithArgument(toolName))
     .WithWorkingDirectory(projectDirectory)
     .WithTimeout(TimeSpan.FromMinutes(2))
     .GetCommand();
 ```
 
-Arguments, timeout, working directory and secrets applied outside a condition apply on every platform.
+Timeout, working directory, environment and secrets applied after the branch apply on every platform.
 
 ## Things to know
 
-- Conditions are evaluated when you call the builder method, using `RuntimeInformation.Current` (or the runtime info injected into the builder for tests).
+- `When` only runs the action when the condition is true; it does not carry platform info of its own.
 - Prefer launching the real binary when you can resolve it; wrapping with `cmd /c` or a shell is a last resort for tools that only exist as shell scripts.
 - Cross-platform differences in path separators and shell builtins still belong to your arguments; the builder only quotes them.

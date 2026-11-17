@@ -25,14 +25,13 @@ public class PassArgumentsGuideTests : IDisposable
 
         // act
         // sample: pass-arguments-basic
-        var command = new CliCommandBuilder("node", scriptPath)
+        CliCommandResult result = await new CliCommandBuilder("node", scriptPath)
             .WithArgument("--message")
             .WithArgument(message)
             .WithWorkingDirectory(workingDirectory)
             .WithEnvironmentVariable("MY_TOOL_PROMPT", "0")
-            .GetCommand();
-
-        CliCommandResult result = await command.ExecuteAsync();
+            .GetCommand()
+            .RunAsync();
         // end sample
 
         // assert
@@ -50,13 +49,13 @@ public class PassArgumentsGuideTests : IDisposable
         // act
         // sample: pass-arguments-format
         var command = new CliCommandBuilder("node", "-e")
-            .WithArgument("console.log('{0}')", message)
+            .WithFormattedArgument("console.log('{0}')", message)
             .GetCommand();
         // end sample
 
         // assert
-        CliCommandResult result = await command.ExecuteAsync();
-        Assert.Equal(message, result.StandardOutput?.Trim());
+        CliCommandResult result = await command.RunAsync();
+        Assert.Equal(message, result.StandardOutput.Trim());
     }
 
     [Fact]
@@ -78,8 +77,8 @@ public class PassArgumentsGuideTests : IDisposable
         // end sample
 
         // assert
-        CliCommandResult result = await command.ExecuteAsync();
-        Assert.Equal("en|yes", result.StandardOutput?.Trim());
+        CliCommandResult result = await command.RunAsync();
+        Assert.Equal("en|yes", result.StandardOutput.Trim());
     }
 
     [Fact]
@@ -92,14 +91,13 @@ public class PassArgumentsGuideTests : IDisposable
 
         // act
         // sample: pass-arguments-session
-        using var session = CliProcessSession.Start(
-            new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode));
+        using var session = new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode).GetCommand().Start();
         // end sample
 
         // assert
         Assert.False(session.HasExited);
         Assert.Contains(
             "--mode",
-            new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode).GetProcessOptions().Arguments);
+            new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode).GetCommand().Arguments);
     }
 }

@@ -24,9 +24,7 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
 
         // act
         // sample: session-basic
-        using var session = CliProcessSession.Start(
-            new CliCommandBuilder("node", workerScript, outputDirectory));
-        session.StandardInput.NewLine = "\n";
+        using var session = new CliCommandBuilder("node", workerScript, outputDirectory).GetCommand().Start();
 
         await session.StandardInput.WriteLineAsync(request);
         string? response = await session.StandardOutput.ReadLineAsync();   // null once the worker is gone
@@ -40,8 +38,7 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
     public async Task enforce_a_per_request_timeout()
     {
         // arrange
-        using var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
-        session.StandardInput.NewLine = "\n";
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
         await session.StandardInput.WriteLineAsync("hang");
         var requestTimeout = TimeSpan.FromMilliseconds(300);
 
@@ -62,7 +59,7 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
     public async Task manage_lifecycle()
     {
         // arrange
-        using var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
         var token = CancellationToken.None;
 
         // act
@@ -90,11 +87,10 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
 
         // act
         // sample: session-options
-        using var session = CliProcessSession.Start(
-            new CliCommandBuilder("node", workerScript, outputDirectory)
+        using var session = new CliCommandBuilder("node", workerScript, outputDirectory)
                 .WithWorkingDirectory(workerDirectory)
                 .WithEnvironmentVariable("NODE_ENV", "test")
-                .WithTerminateTimeout(TimeSpan.FromSeconds(10)));
+                .WithTerminateTimeout(TimeSpan.FromSeconds(10)).GetCommand().Start();
         // end sample
 
         // assert

@@ -16,11 +16,6 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
-  
-  <ItemGroup>
-    <PackageReference Include="jaytwo.RuntimeRevelation" Version="0.2.1-*" />
-  </ItemGroup>
-  
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.*" />
   </ItemGroup>
@@ -39,7 +34,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="jaytwo.Subprocess.UnitTests" />
-    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
     <None Include="..\..\README.md" Pack="true" PackagePath="" Link="README.md" />
   </ItemGroup>
 

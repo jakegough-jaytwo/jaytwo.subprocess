@@ -16,13 +16,13 @@ public class TerminationTests : IDisposable
     public void Dispose() => _workspace.Dispose();
 
     [Fact]
-    public async Task ExecuteAsync_terminates_the_whole_process_tree_on_timeout_and_keeps_both_streams()
+    public async Task RunAsync_terminates_the_whole_process_tree_on_timeout_and_keeps_both_streams()
     {
         // arrange
         var command = _workspace.NodeWithDirectory("tree.js").WithTimeout(TreeTimeout).GetCommand();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.RunAsync());
 
         // assert
         Assert.True(_workspace.WaitForFile("ready"), "the child never signaled readiness; the timeout may be too short for this machine");
@@ -37,13 +37,13 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public void Execute_terminates_the_whole_process_tree_on_timeout_and_keeps_both_streams()
+    public void Run_terminates_the_whole_process_tree_on_timeout_and_keeps_both_streams()
     {
         // arrange
         var command = _workspace.NodeWithDirectory("tree.js").WithTimeout(TreeTimeout).GetCommand();
 
         // act
-        var exception = TestWorkspace.Capture<ProcessTimeoutException>(() => command.Execute());
+        var exception = TestWorkspace.Capture<ProcessTimeoutException>(() => command.Run());
 
         // assert
         Assert.True(_workspace.WaitForFile("ready"), "the child never signaled readiness; the timeout may be too short for this machine");
@@ -55,12 +55,12 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_terminates_the_whole_process_tree_on_cancellation_and_reports_it_distinctly()
+    public async Task RunAsync_terminates_the_whole_process_tree_on_cancellation_and_reports_it_distinctly()
     {
         // arrange
         using var cancellation = new CancellationTokenSource();
         var command = _workspace.NodeWithDirectory("tree.js").GetCommand(); // 30s timeout: only cancellation can end this
-        var execution = TestWorkspace.CaptureAsync<ProcessCanceledException>(() => command.ExecuteAsync(cancellation.Token));
+        var execution = TestWorkspace.CaptureAsync<ProcessCanceledException>(() => command.RunAsync(cancellation.Token));
 
         // act
         Assert.True(_workspace.WaitForFile("ready"));
@@ -79,12 +79,12 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public async Task Execute_terminates_the_whole_process_tree_on_cancellation()
+    public async Task Run_terminates_the_whole_process_tree_on_cancellation()
     {
         // arrange
         using var cancellation = new CancellationTokenSource();
         var command = _workspace.NodeWithDirectory("tree.js").GetCommand();
-        var execution = Task.Run(() => TestWorkspace.Capture<ProcessCanceledException>(() => command.Execute(cancellation.Token)));
+        var execution = Task.Run(() => TestWorkspace.Capture<ProcessCanceledException>(() => command.Run(cancellation.Token)));
 
         // act
         Assert.True(_workspace.WaitForFile("ready"));
@@ -99,80 +99,45 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_with_an_explicit_executor_surfaces_cancellation_as_ProcessCanceledException()
-    {
-        // arrange
-        using var cancellation = new CancellationTokenSource();
-        var command = _workspace.NodeWithDirectory("tree.js").GetCommand();
-        var execution = TestWorkspace.CaptureAsync<OperationCanceledException>(() => command.ExecuteAsync(cancellation.Token, new CliCommandExecutor()));
-
-        // act
-        Assert.True(_workspace.WaitForFile("ready"));
-        cancellation.Cancel();
-        var exception = await execution;
-
-        // assert
-        Assert.IsType<ProcessCanceledException>(exception);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_throws_without_starting_a_process_when_already_canceled()
+    public async Task RunAsync_throws_without_starting_a_process_when_already_canceled()
     {
         // arrange
         var command = _workspace.NodeWithDirectory("pid.js").GetCommand();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<OperationCanceledException>(() => command.ExecuteAsync(new CancellationToken(true)));
+        var exception = await TestWorkspace.CaptureAsync<OperationCanceledException>(() => command.RunAsync(new CancellationToken(true)));
 
         // assert
         Assert.False(System.IO.File.Exists(_workspace.PathOf("pid.pid")));
         Assert.NotNull(exception);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_does_not_swallow_a_cancellation_when_exceptions_are_suppressed()
+    [Theory]
+    [InlineData(true, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    public void ShouldSuppress_preserves_cancellation_when_termination_fails(bool canceled, bool suppress, bool expected)
     {
         // arrange
-        var command = new CliCommandBuilder("anything").GetCommand();
-        var canceledResult = new CliCommandResult { Command = command, Canceled = true };
-        var inner = new Moq.Mock<ICliCommandExecutor>();
-        inner.Setup(x => x.ExecuteAsync(command)).Throws(new ProcessCanceledException(canceledResult, new CancellationToken(true)));
-        inner.Setup(x => x.Execute(command)).Throws(new ProcessCanceledException(canceledResult, new CancellationToken(true)));
+        var result = new CliCommandResult { Canceled = canceled, TerminationFailed = true };
+        var exception = new ProcessTerminationException(result);
 
         // act
-        var asyncException = await TestWorkspace.CaptureAsync<ProcessCanceledException>(() => inner.Object.ExecuteAsync(command, suppressCommandLineExceptions: true));
-        var syncException = TestWorkspace.Capture<ProcessCanceledException>(() => inner.Object.Execute(command, suppressCommandLineExceptions: true));
+        var actual = CliCommand.ShouldSuppress(exception, suppress);
 
         // assert
-        Assert.Same(canceledResult, asyncException.Result);
-        Assert.Same(canceledResult, syncException.Result);
+        Assert.Equal(expected, actual);
     }
 
     [Fact]
-    public async Task ExecuteAsync_does_not_swallow_a_canceled_subprocess_exception_when_exceptions_are_suppressed()
-    {
-        // arrange
-        var command = new CliCommandBuilder("anything").GetCommand();
-        var canceledResult = new CliCommandResult { Command = command, Canceled = true };
-        var inner = new Moq.Mock<ICliCommandExecutor>();
-        inner.Setup(x => x.ExecuteAsync(command)).Throws(new ProcessTerminationException(canceledResult));
-
-        // act
-        var exception = await TestWorkspace.CaptureAsync<ProcessTerminationException>(() => inner.Object.ExecuteAsync(command, suppressCommandLineExceptions: true));
-
-        // assert
-        Assert.Same(canceledResult, exception.Result);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_ignores_cancellation_requested_after_the_process_has_finished()
+    public async Task RunAsync_ignores_cancellation_requested_after_the_process_has_finished()
     {
         // arrange
         using var cancellation = new CancellationTokenSource();
         var command = _workspace.Node("exit.js", "0").GetCommand();
 
         // act
-        var result = await command.ExecuteAsync(cancellation.Token);
+        var result = await command.RunAsync(cancellation.Token);
         cancellation.Cancel();
 
         // assert
@@ -181,7 +146,7 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_bounds_the_wait_when_an_unreachable_descendant_holds_the_pipes_after_timeout()
+    public async Task RunAsync_bounds_the_wait_when_an_unreachable_descendant_holds_the_pipes_after_timeout()
     {
         // arrange
         var command = _workspace.NodeWithDirectory("escape.js")
@@ -191,7 +156,7 @@ public class TerminationTests : IDisposable
         var stopwatch = Stopwatch.StartNew();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.RunAsync());
         stopwatch.Stop();
 
         // assert
@@ -205,7 +170,7 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_bounds_the_wait_when_a_descendant_holds_the_pipes_after_a_normal_exit()
+    public async Task RunAsync_bounds_the_wait_when_a_descendant_holds_the_pipes_after_a_normal_exit()
     {
         // arrange
         var command = _workspace.NodeWithDirectory("holdpipes.js")
@@ -214,7 +179,7 @@ public class TerminationTests : IDisposable
         var stopwatch = Stopwatch.StartNew();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
         stopwatch.Stop();
 
         // assert
@@ -227,7 +192,7 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public void Execute_bounds_the_wait_when_a_descendant_holds_the_pipes_after_a_normal_exit()
+    public void Run_bounds_the_wait_when_a_descendant_holds_the_pipes_after_a_normal_exit()
     {
         // arrange
         var command = _workspace.NodeWithDirectory("holdpipes.js")
@@ -235,7 +200,7 @@ public class TerminationTests : IDisposable
             .GetCommand();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
 
         // assert
         Assert.True(result.Success);
@@ -244,13 +209,13 @@ public class TerminationTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_rejects_a_negative_timeout()
+    public async Task RunAsync_rejects_a_negative_timeout()
     {
         // arrange
         var command = _workspace.Node("exit.js", "0").WithTimeout(TimeSpan.FromSeconds(-5)).GetCommand();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ArgumentOutOfRangeException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<ArgumentOutOfRangeException>(() => command.RunAsync());
 
         // assert
         Assert.Equal("Timeout", exception.ParamName);

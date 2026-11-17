@@ -15,11 +15,10 @@ public class RunACommandGuideTests
 
         // act
         // sample: run-basic
-        var command = new CliCommandBuilder("node", "-e")
-            .WithArgument("console.log('{0}')", "hello world")
-            .GetCommand();
-
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await new CliCommandBuilder("node", "-e")
+            .WithFormattedArgument("console.log('{0}')", "hello world")
+            .GetCommand()
+            .RunAsync();
 
         Console.WriteLine(result.Command);           // masked ToString of the launch line
         Console.WriteLine(result.ExitCode);
@@ -31,7 +30,7 @@ public class RunACommandGuideTests
 
         // assert
         Assert.True(result.Success);
-        Assert.Equal("hello world", result.StandardOutput?.Trim());
+        Assert.Equal("hello world", result.StandardOutput.Trim());
     }
 
     [Fact]
@@ -44,37 +43,35 @@ public class RunACommandGuideTests
 
         // act
         // sample: run-sync-async
-        CliCommandResult syncResult = command.Execute();
-        CliCommandResult asyncResult = await command.ExecuteAsync();
+        CliCommandResult syncResult = command.Run();
+        CliCommandResult asyncResult = await command.RunAsync();
         // end sample
 
         // assert
         Assert.True(syncResult.Success);
         Assert.True(asyncResult.Success);
-        Assert.Equal("ok", syncResult.StandardOutput?.Trim());
-        Assert.Equal("ok", asyncResult.StandardOutput?.Trim());
+        Assert.Equal("ok", syncResult.StandardOutput.Trim());
+        Assert.Equal("ok", asyncResult.StandardOutput.Trim());
     }
 
     [Fact]
-    public async Task inject_an_executor()
+    public async Task RunAsync_logs_with_a_configured_logger()
     {
         // arrange
-        var command = new CliCommandBuilder("node", "-e")
-            .WithArgument("console.log('ok')")
-            .GetCommand();
-        var token = CancellationToken.None;
+        var logger = new RecordingLogger();
 
         // act
-        // sample: run-inject-executor
-        ICliCommandExecutor executor = new CliCommandExecutor();
-        CliCommandResult result = await command.ExecuteAsync(executor);
-
-        // or with a token (requires ICancellableCliCommandExecutor)
-        CliCommandResult canceledAware = await command.ExecuteAsync(token, executor);
+        // sample: run-logging
+        CliCommandResult result = await CliCommand.RunAsync(b => b
+            .WithFileName("node")
+            .WithArgument("-e")
+            .WithArgument("console.log('ok')")
+            .WithLogger(logger));
         // end sample
 
         // assert
         Assert.True(result.Success);
-        Assert.True(canceledAware.Success);
+        Assert.Contains(logger.Messages, x => x.Contains("Command"));
+        Assert.Contains(logger.Messages, x => x.Contains("Result"));
     }
 }

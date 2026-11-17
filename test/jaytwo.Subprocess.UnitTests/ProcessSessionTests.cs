@@ -14,11 +14,23 @@ public class ProcessSessionTests : IDisposable
     public void Dispose() => _workspace.Dispose();
 
     [Fact]
+    public void Start_defaults_standard_input_new_line_to_lf()
+    {
+        // arrange
+        var command = _workspace.NodeSessionCommand("worker.js");
+
+        // act
+        using var session = command.Start();
+
+        // assert
+        Assert.Equal("\n", session.StandardInput.NewLine);
+    }
+
+    [Fact]
     public async Task Start_supports_repeated_request_response_exchanges_and_exposes_the_process()
     {
         // arrange
-        using var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
-        session.StandardInput.NewLine = "\n";
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
 
         // act
         await session.StandardInput.WriteLineAsync("one");
@@ -38,8 +50,7 @@ public class ProcessSessionTests : IDisposable
     public async Task Terminate_kills_the_worker_and_its_descendants_and_unblocks_a_pending_read()
     {
         // arrange
-        using var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
-        session.StandardInput.NewLine = "\n";
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
         await session.StandardInput.WriteLineAsync("spawn");
         Assert.Equal("spawned", await session.StandardOutput.ReadLineAsync());
         await session.StandardInput.WriteLineAsync("hang");
@@ -60,8 +71,7 @@ public class ProcessSessionTests : IDisposable
     public async Task Terminate_enforces_a_per_request_timeout_when_wired_to_a_cancellation_token()
     {
         // arrange
-        using var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
-        session.StandardInput.NewLine = "\n";
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
         using var requestTimeout = new CancellationTokenSource();
         using var registration = requestTimeout.Token.Register(session.Terminate);
 
@@ -79,8 +89,7 @@ public class ProcessSessionTests : IDisposable
     public async Task Dispose_kills_the_worker_and_its_descendants()
     {
         // arrange
-        var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
-        session.StandardInput.NewLine = "\n";
+        var session = _workspace.NodeSessionCommand("worker.js").Start();
         await session.StandardInput.WriteLineAsync("spawn");
         Assert.Equal("spawned", await session.StandardOutput.ReadLineAsync());
 
@@ -97,9 +106,7 @@ public class ProcessSessionTests : IDisposable
     public async Task WaitForExitAsync_returns_the_exit_code_and_terminate_is_then_a_no_op()
     {
         // arrange
-        using var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
-        session.StandardInput.NewLine = "\n";
-
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
         // act
         await session.StandardInput.WriteLineAsync("crash");
         var exitCode = await session.WaitForExitAsync();
@@ -114,7 +121,7 @@ public class ProcessSessionTests : IDisposable
     public async Task WaitForExitAsync_cancellation_abandons_the_wait_without_killing_the_worker()
     {
         // arrange
-        using var session = CliProcessSession.Start(_workspace.NodeOptions("worker.js"));
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
 
         // act
@@ -130,13 +137,13 @@ public class ProcessSessionTests : IDisposable
     public void Start_applies_environment_and_masks_secrets_in_options_text()
     {
         // arrange
-        var options = _workspace.NodeOptions("worker.js");
+        var options = _workspace.NodeSessionCommand("worker.js");
         options.Environment["JAYTWO_TEST"] = "1";
         options.Secrets.Add("worker");
 
         // act
         var text = options.ToString();
-        using var session = CliProcessSession.Start(options);
+        using var session = options.Start();
 
         // assert
         Assert.DoesNotContain("worker", text);
@@ -148,11 +155,11 @@ public class ProcessSessionTests : IDisposable
     public void Start_rejects_a_negative_terminate_timeout()
     {
         // arrange
-        var options = _workspace.NodeOptions("worker.js");
+        var options = _workspace.NodeSessionCommand("worker.js");
         options.TerminateTimeout = TimeSpan.FromSeconds(-2);
 
         // act
-        var exception = TestWorkspace.Capture<ArgumentOutOfRangeException>(() => CliProcessSession.Start(options));
+        var exception = TestWorkspace.Capture<ArgumentOutOfRangeException>(() => options.Start());
 
         // assert
         Assert.NotNull(exception);
@@ -162,17 +169,17 @@ public class ProcessSessionTests : IDisposable
     public void Start_throws_a_launch_failure()
     {
         // arrange
-        var options = new CliProcessOptions("jaytwo-subprocess-no-such-program");
+        var options = new CliCommand { FileName = "jaytwo-subprocess-no-such-program" };
 
         // act
-        var exception = TestWorkspace.Capture<Win32Exception>(() => CliProcessSession.Start(options));
+        var exception = TestWorkspace.Capture<Win32Exception>(() => options.Start());
 
         // assert
         Assert.NotNull(exception);
     }
 
     [Fact]
-    public async Task Start_accepts_a_command_builder()
+    public async Task Start_accepts_a_built_command()
     {
         // arrange
         var builder = _workspace.NodeWithDirectory("worker.js")
@@ -180,8 +187,7 @@ public class ProcessSessionTests : IDisposable
             .WithTerminateTimeout(TimeSpan.FromSeconds(10));
 
         // act
-        using var session = CliProcessSession.Start(builder);
-        session.StandardInput.NewLine = "\n";
+        using var session = builder.GetCommand().Start();
         await session.StandardInput.WriteLineAsync("ping");
         var response = await session.StandardOutput.ReadLineAsync();
 
@@ -198,12 +204,11 @@ public class ProcessSessionTests : IDisposable
         string outputDirectory = _workspace.Directory;
 
         // act
-        using var session = CliProcessSession.Start(b => b
+        using var session = CliCommand.Start(b => b
             .WithFileName("node")
             .WithArgument(workerScript)
             .WithArgument(outputDirectory)
             .WithTerminateTimeout(TimeSpan.FromSeconds(10)));
-        session.StandardInput.NewLine = "\n";
         await session.StandardInput.WriteLineAsync("ping");
         var response = await session.StandardOutput.ReadLineAsync();
 
@@ -219,7 +224,7 @@ public class ProcessSessionTests : IDisposable
             .WithTimeout(TimeSpan.FromSeconds(1));
 
         // act
-        var exception = Assert.Throws<InvalidOperationException>(() => CliProcessSession.Start(builder));
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.GetCommand().Start());
 
         // assert
         Assert.Contains(nameof(CliCommandBuilder.Timeout), exception.Message);

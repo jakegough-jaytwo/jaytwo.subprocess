@@ -16,9 +16,9 @@ Start a process from a file name and arguments, wait for it to finish, and retur
 
 ### Fluent command building
 
-Compose file name, arguments, working directory, environment, timeout, expected exit codes, stdin, encodings, and secrets through `CliCommandBuilder`.
+Compose file name, arguments, working directory, environment, timeout, expected exit codes, stdin, encodings, and secrets through `CliCommandBuilder`. Session-only `TerminateTimeout` and optional logging are also set on the same builder. `CliCommand.Run` / `RunAsync` finish a one-shot run; `CliCommand.Start` returns a caller-owned session.
 
-*Accumulates settings and produces a `CliCommand` with safely quoted arguments.*
+*Accumulates settings and produces a `CliCommand` with safely quoted arguments. Build preserves unset values; each verb applies its defaults and rejects settings for the other lifetime.*
 
 ### Expected exit codes
 
@@ -70,7 +70,7 @@ Enforce a configurable timeout (default 60 seconds; infinite allowed). On timeou
 
 ### Cancellation
 
-Honor a `CancellationToken` on execute. Distinguish caller cancel from timeout and from unexpected exit. Cancellation is never swallowed by `suppressCommandLineExceptions`.
+Honor a `CancellationToken` on `Run` / `RunAsync`. Distinguish caller cancel from timeout and from unexpected exit. Cancellation is never swallowed by `suppressCommandLineExceptions`.
 
 *Registers the token; on cancel, kills the tree and throws `ProcessCanceledException`.*
 
@@ -96,9 +96,9 @@ Mask configured secrets in `ToString`, logged command lines, and logged output. 
 
 ### Optional logging
 
-Accept an optional `ILogger`; do not add a logging dependency solely for telemetry on modern TFMs beyond the existing package references.
+Accept an optional non-generic `ILogger` through `WithLogger`; do not add a logging dependency solely for telemetry on modern TFMs beyond the existing package references.
 
-*Writes truncated, masked command and result lines when a logger is present.*
+*Writes truncated, masked command and result lines for one-shot runs, and launch/termination diagnostics for sessions, when the relevant logging level is enabled. Logger failures cannot interrupt termination or disposal.*
 
 ### Process id on the result
 
@@ -108,11 +108,11 @@ Expose the child PID on `CliCommandResult` after a one-shot run (including failu
 
 ## Cross-platform launch helpers
 
-### Runtime-conditioned builders
+### Conditional builder configuration
 
-Adjust file name or arguments based on OS/runtime so the same builder works across development and deployment hosts.
+Apply builder actions only when a caller-supplied condition is true (for example a BCL OS check), so platform-specific file names stay on the fluent chain.
 
-*Evaluates predicates from runtime revelation and applies builder actions when they match.*
+*Evaluates a bool and invokes the action on the same builder when true (`When`).*
 
 ## Streaming (escape hatch)
 
@@ -122,7 +122,7 @@ Start a long-lived process with stdin/stdout open for the caller, drain stderr i
 
 *Uses the same launch and tree-kill machinery as one-shot; does not wait for a final "result" object.*
 
-Session settings are launch and terminate only (`CliProcessOptions`). No one-shot timeout, expected exit codes, or one-shot stdin on that type.
+`CliCommand.Start` accepts launch and terminate settings. It rejects currently configured one-shot timeout, expected exit codes, stdin text/stream, and output drain timeout. `Run` / `RunAsync` reject a configured `TerminateTimeout`. Null settings and null or empty expected exit codes are unset; empty stdin text remains configured input. Clearing a setting restores eligibility for the other verb.
 
 ## Boundaries
 

@@ -21,7 +21,7 @@ public class TimeoutsCancellationAndExitCodesGuideTests
             .WithExpectedExitCodes(0, 1) // 1 = treated as success for this tool
             .GetCommand();
 
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await command.RunAsync();
         // end sample
 
         // assert
@@ -41,11 +41,11 @@ public class TimeoutsCancellationAndExitCodesGuideTests
             .WithTimeout(TimeSpan.FromMinutes(5))
             .GetCommand();
 
-        await command.ExecuteAsync();
+        await command.RunAsync();
         // end sample
 
         // assert
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await command.RunAsync();
         Assert.True(result.Success);
         Assert.Equal("done", result.StandardOutput?.Trim());
     }
@@ -64,7 +64,7 @@ public class TimeoutsCancellationAndExitCodesGuideTests
 
         try
         {
-            await command.ExecuteAsync(cts.Token);
+            await command.RunAsync(cts.Token);
         }
         catch (ProcessCanceledException)
         {
@@ -87,7 +87,7 @@ public class TimeoutsCancellationAndExitCodesGuideTests
 
         // act
         // sample: suppress
-        CliCommandResult result = await command.ExecuteAsync(suppressCommandLineExceptions: true);
+        CliCommandResult result = await command.RunAsync(suppressCommandLineExceptions: true);
 
         if (result.TimedOut || !result.Success || result.TerminationFailed)
         {

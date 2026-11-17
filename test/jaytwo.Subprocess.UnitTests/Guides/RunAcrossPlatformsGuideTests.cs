@@ -1,6 +1,6 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using jaytwo.RuntimeRevelation;
 using Xunit;
 
 namespace jaytwo.Subprocess.UnitTests.Guides;
@@ -19,47 +19,38 @@ public class RunAcrossPlatformsGuideTests : IDisposable
 
         // act
         // sample: platform-branch
-        var command = new CliCommandBuilder()
-            .WithRuntimeCondition(x => x.Platform != OSPlatform.Windows, builder =>
-            {
-                builder.WithFileName("node").WithArguments(new[] { "-e", "console.log('unix')" });
-            })
-            .WithRuntimeCondition(x => x.Platform == OSPlatform.Windows, builder =>
-            {
-                builder.WithFileName("node").WithArguments(new[] { "-e", "console.log('windows')" });
-            })
-            .GetCommand();
-
-        await command.ExecuteAsync();
+        CliCommandResult result = await new CliCommandBuilder()
+            .When(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("where").WithArgument("node"))
+            .When(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("which").WithArgument("node"))
+            .GetCommand()
+            .RunAsync();
         // end sample
 
         // assert
-        CliCommandResult result = await command.ExecuteAsync();
         Assert.True(result.Success);
-        string expected = RuntimeInformation.Current.Platform == OSPlatform.Windows ? "windows" : "unix";
-        Assert.Equal(expected, result.StandardOutput?.Trim());
+        Assert.Contains("node", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task share_setup_after_the_branch()
     {
         // arrange
-        string name = "Ada";
+        string toolName = "node";
         string projectDirectory = _workspace.Directory;
 
         // act
         // sample: platform-shared
         var command = new CliCommandBuilder()
-            .WithRuntimeCondition(x => x.Platform == OSPlatform.Windows, b => b.WithFileName("node").WithArguments(new[] { "-e", "console.log(process.argv[1])", name }))
-            .WithRuntimeCondition(x => x.Platform != OSPlatform.Windows, b => b.WithFileName("node").WithArguments(new[] { "-e", "console.log(process.argv[1])", name }))
+            .When(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("where").WithArgument(toolName))
+            .When(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows), b => b.WithFileName("which").WithArgument(toolName))
             .WithWorkingDirectory(projectDirectory)
             .WithTimeout(TimeSpan.FromMinutes(2))
             .GetCommand();
         // end sample
 
         // assert
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await command.RunAsync();
         Assert.True(result.Success);
-        Assert.Equal(name, result.StandardOutput?.Trim());
+        Assert.Contains("node", result.StandardOutput, StringComparison.OrdinalIgnoreCase);
     }
 }

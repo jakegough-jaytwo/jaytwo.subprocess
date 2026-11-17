@@ -24,7 +24,7 @@ public class FeedStandardInputGuideTests : IDisposable
             .WithStandardInput("hello")
             .GetCommand();
 
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await command.RunAsync();
         Console.WriteLine(result.StandardOutput);
         // end sample
 
@@ -48,7 +48,7 @@ public class FeedStandardInputGuideTests : IDisposable
             .WithStandardInput(inputStream)
             .GetCommand();
 
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await command.RunAsync();
         // end sample
 
         // assert

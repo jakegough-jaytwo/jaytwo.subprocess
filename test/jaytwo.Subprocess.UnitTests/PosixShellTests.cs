@@ -18,7 +18,7 @@ public class PosixShellTests : IDisposable
     public void Dispose() => _workspace.Dispose();
 
     [PosixFact]
-    public async Task ExecuteAsync_terminates_a_shell_and_its_background_descendant_on_timeout()
+    public async Task RunAsync_terminates_a_shell_and_its_background_descendant_on_timeout()
     {
         // arrange
         var command = Shell(
@@ -28,7 +28,7 @@ public class PosixShellTests : IDisposable
             .GetCommand();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.RunAsync());
 
         // assert
         Assert.True(_workspace.WaitForFile("ready"));
@@ -41,7 +41,7 @@ public class PosixShellTests : IDisposable
     }
 
     [PosixFact]
-    public void Execute_returns_within_the_drain_bound_when_a_background_descendant_holds_the_pipes_after_a_normal_exit()
+    public void Run_returns_within_the_drain_bound_when_a_background_descendant_holds_the_pipes_after_a_normal_exit()
     {
         // arrange
         var command = Shell("sleep 300 & echo $! > \"$D/grandchild.pid\"; printf out; printf err >&2; exit 0")
@@ -50,7 +50,7 @@ public class PosixShellTests : IDisposable
         var stopwatch = Stopwatch.StartNew();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
         stopwatch.Stop();
 
         // assert
@@ -62,7 +62,7 @@ public class PosixShellTests : IDisposable
     }
 
     [PosixFact]
-    public async Task ExecuteAsync_bounds_the_wait_when_an_orphaned_descendant_holds_the_pipes_after_timeout()
+    public async Task RunAsync_bounds_the_wait_when_an_orphaned_descendant_holds_the_pipes_after_timeout()
     {
         // arrange: the subshell exits immediately, orphaning the sleep so tree termination cannot find it
         var command = Shell("(sleep 300 & echo $! > \"$D/grandchild.pid\"); printf parent-out; : > \"$D/ready\"; sleep 300")
@@ -72,7 +72,7 @@ public class PosixShellTests : IDisposable
         var stopwatch = Stopwatch.StartNew();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<ProcessTimeoutException>(() => command.RunAsync());
         stopwatch.Stop();
 
         // assert
@@ -84,7 +84,7 @@ public class PosixShellTests : IDisposable
     }
 
     [PosixFact]
-    public async Task ExecuteAsync_feeds_large_stdin_while_stdout_and_stderr_are_both_active()
+    public async Task RunAsync_feeds_large_stdin_while_stdout_and_stderr_are_both_active()
     {
         // arrange
         var input = TestWorkspace.Generate(5, 3_000_000);
@@ -94,7 +94,7 @@ public class PosixShellTests : IDisposable
             .GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal(input, result.StandardOutput);
@@ -102,7 +102,7 @@ public class PosixShellTests : IDisposable
     }
 
     [PosixFact]
-    public async Task ExecuteAsync_closes_stdin_so_eof_dependent_programs_finish()
+    public async Task RunAsync_closes_stdin_so_eof_dependent_programs_finish()
     {
         // arrange
         var command = new CliCommandBuilder("/bin/sh", "-c", "cat | wc -c")
@@ -111,7 +111,7 @@ public class PosixShellTests : IDisposable
             .GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal("5", result.StandardOutput?.Trim());

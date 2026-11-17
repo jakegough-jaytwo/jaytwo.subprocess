@@ -19,13 +19,13 @@ public class CaptureOutputGuideTests : IDisposable
 
         // act
         // sample: capture-basic
-        var command = new CliCommandBuilder("node", "-e")
+        CliCommandResult result = await new CliCommandBuilder("node", "-e")
             .WithArgument("console.log('line1'); console.error('err1')")
-            .GetCommand();
-        CliCommandResult result = await command.ExecuteAsync();
+            .GetCommand()
+            .RunAsync();
 
-        string stdout = result.StandardOutput ?? string.Empty;
-        string stderr = result.StandardError ?? string.Empty;
+        string stdout = result.StandardOutput;
+        string stderr = result.StandardError;
         // end sample
 
         // assert
@@ -48,7 +48,7 @@ public class CaptureOutputGuideTests : IDisposable
         // end sample
 
         // assert
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await command.RunAsync();
         Assert.True(result.Success);
         Assert.Contains("café", result.StandardOutput);
         Assert.Contains("café", result.StandardError);
@@ -67,7 +67,7 @@ public class CaptureOutputGuideTests : IDisposable
             .WithOutputDrainTimeout(TimeSpan.FromSeconds(2))
             .GetCommand();
 
-        CliCommandResult result = await command.ExecuteAsync(suppressCommandLineExceptions: true);
+        CliCommandResult result = await command.RunAsync(suppressCommandLineExceptions: true);
 
         if (result.OutputIncomplete)
         {

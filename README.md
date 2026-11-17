@@ -46,11 +46,10 @@ using jaytwo.Subprocess;
 
 var message = "hello world";
 
-var command = new CliCommandBuilder("node", "-e")
-    .WithArgument("console.log('{0}')", message)
-    .GetCommand();
-
-var result = await command.ExecuteAsync();
+var result = await new CliCommandBuilder("node", "-e")
+    .WithFormattedArgument("console.log('{0}')", message)
+    .GetCommand()
+    .RunAsync();
 
 Console.WriteLine("Command: {0}", result.Command);
 Console.WriteLine("ExitCode: {0}", result.ExitCode);
@@ -62,10 +61,17 @@ For stdin, encodings, timeouts, cancellation, secrets, platform-specific launch 
 
 ## Upgrading from 0.2.x
 
-Additive: new `CliCommand`/`CliCommandBuilder` members (`StandardInput*`, encodings, `OutputDrainTimeout`), `ProcessCanceledException`,
-`ProcessTerminationException`, `ICancellableCliCommandExecutor` (a new interface, so existing `ICliCommandExecutor` implementers still compile),
-the `CancellationToken` overloads, the `jaytwo.Subprocess.Streaming` namespace and the net10.0 target. The old `TimeoutException`
-(which embedded output in its message) is `[Obsolete]`; nothing throws it.
+Configure with `CliCommandBuilder`, materialize with `GetCommand()` or `CliCommand.Build(configure)`, then use `command.Run()` / `RunAsync()` for a completed result or `command.Start()` for a live `Streaming.CliProcessSession`. Static `CliCommand.Run(configure)`, `RunAsync(configure)`, and `Start(configure)` combine configuration and launch.
+
+Breaking API changes:
+
+* `ICliCommandExecutor`, `ICancellableCliCommandExecutor`, `ICliCommandExecutorExtensions`, and public `CliCommandExecutor` are removed, including executor-accepting overloads.
+* `Execute` / `ExecuteAsync` are replaced by command-level `Run` / `RunAsync`. Builders configure only; materialize a command before running it.
+* Public `CliProcessOptions` and `GetProcessOptions()` are removed. Inspect `CliCommand` instead. Start sessions through `CliCommand.Start`, replacing public `CliProcessSession.Start` overloads.
+* Defaults apply at the verb. `Start` rejects configured timeout, stdin text/stream, expected exit codes, and output drain timeout; `Run` rejects configured `TerminateTimeout`. Clearing settings restores eligibility. Null or empty expected exit codes are unset; empty stdin text is configured input.
+* Configure optional logging with `WithLogger(ILogger?)`. One-shot runs log masked, truncated command/result diagnostics; sessions log launch and termination diagnostics when enabled. Failures while logging one-shot results do not replace command outcomes or change exception suppression. Termination/disposal cleanup survives logger failures.
+
+Other additions include stdin text/stream input, encodings, bounded output drain, cancellation overloads (including suppression), typed cancellation/termination failures, `When`, `WithFormattedArgument`, Streaming sessions, and the net10.0 target. Use `WithFormattedArgument` for formatting into one argv token.
 
 Behavior changes (why this is 0.3.0):
 
@@ -75,6 +81,13 @@ Behavior changes (why this is 0.3.0):
 * A normal exit or a timeout no longer waits indefinitely for pipe EOF; it gives up after `OutputDrainTimeout` and reports `OutputIncomplete`.
 * An empty string in `Secrets` no longer throws from `ToString()`.
 * The netstandard2.0 build refuses to run (`PlatformNotSupportedException`) where it cannot terminate a tree (non-Windows without `Process.Kill(bool)`).
+* `GetCommand()` snapshots `Secrets`; mutating the builder list afterward does not change an existing command.
+* `CliCommandResult.StandardOutput` / `StandardError` are non-null (empty string when there was no text).
+* `CliProcessSession.StandardInput.NewLine` defaults to LF (`\n`) instead of `Environment.NewLine`.
+* `WithRuntimeCondition` and the `jaytwo.RuntimeRevelation` dependency are gone. Use `When(condition, action)` with a BCL platform
+  check (or any other bool) so fluent chains stay concise without a wrapped runtime-info type.
+* The old `TimeoutException` type (which embedded output in its message) is removed; timeouts throw `ProcessTimeoutException`.
+* `WithArgument(string format, params object[] args)` is removed; use `WithFormattedArgument` or discrete `WithArgument` calls.
 
 ---
 

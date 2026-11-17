@@ -20,13 +20,13 @@ public class MaskSecretsGuideTests
 
         var command = new CliCommandBuilder("node", "-e")
             .WithArgument("console.log(process.argv[1])")
-            .WithArgument("Authorization: Bearer {0}", apiKey)
+            .WithFormattedArgument("Authorization: Bearer {0}", apiKey)
             .WithSecret(apiKey)
             .GetCommand();
 
         Console.WriteLine(command);   // Authorization header shows **** instead of the key
 
-        CliCommandResult result = await command.ExecuteAsync();
+        CliCommandResult result = await command.RunAsync();
         // result.StandardOutput is unmasked; do not log it raw if it can echo the secret
         // end sample
 

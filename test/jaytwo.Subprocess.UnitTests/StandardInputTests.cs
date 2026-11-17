@@ -13,7 +13,7 @@ public class StandardInputTests : IDisposable
     public void Dispose() => _workspace.Dispose();
 
     [Fact]
-    public async Task ExecuteAsync_feeds_large_stdin_while_both_output_streams_are_active()
+    public async Task RunAsync_feeds_large_stdin_while_both_output_streams_are_active()
     {
         // arrange
         var input = TestWorkspace.Generate(3, 3_000_000); // the child echoes each chunk to stdout and stderr, so a write-then-read implementation deadlocks
@@ -24,7 +24,7 @@ public class StandardInputTests : IDisposable
             .GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal(input + "<EOF>", result.StandardOutput);
@@ -32,14 +32,14 @@ public class StandardInputTests : IDisposable
     }
 
     [Fact]
-    public void Execute_feeds_large_stdin_while_both_output_streams_are_active()
+    public void Run_feeds_large_stdin_while_both_output_streams_are_active()
     {
         // arrange
         var input = TestWorkspace.Generate(3, 3_000_000);
         var command = _workspace.Node("echo.js").WithStandardInput(input).GetCommand();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
 
         // assert
         Assert.Equal(input + "<EOF>", result.StandardOutput);
@@ -47,13 +47,13 @@ public class StandardInputTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_closes_stdin_after_empty_text_so_eof_dependent_children_exit()
+    public async Task RunAsync_closes_stdin_after_empty_text_so_eof_dependent_children_exit()
     {
         // arrange
         var command = _workspace.Node("hex.js").WithStandardInput(string.Empty).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.True(result.Success);
@@ -61,35 +61,35 @@ public class StandardInputTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_encodes_stdin_text_as_utf8_without_a_byte_order_mark_by_default()
+    public async Task RunAsync_encodes_stdin_text_as_utf8_without_a_byte_order_mark_by_default()
     {
         // arrange
         var text = "héllo 日本語";
         var command = _workspace.Node("hex.js").WithStandardInput(text).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal(TestWorkspace.ToHex(Encoding.UTF8.GetBytes(text)), result.StandardOutput);
     }
 
     [Fact]
-    public async Task ExecuteAsync_encodes_stdin_text_with_the_requested_encoding()
+    public async Task RunAsync_encodes_stdin_text_with_the_requested_encoding()
     {
         // arrange
         var latin1 = Encoding.GetEncoding("iso-8859-1");
         var command = _workspace.Node("hex.js").WithStandardInput("café", latin1).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal("636166e9", result.StandardOutput);
     }
 
     [Fact]
-    public async Task ExecuteAsync_copies_stdin_stream_from_its_current_position_and_leaves_it_open()
+    public async Task RunAsync_copies_stdin_stream_from_its_current_position_and_leaves_it_open()
     {
         // arrange
         var stream = new MemoryStream(new byte[] { 9, 9, 0, 1, 2, 254, 255 });
@@ -97,7 +97,7 @@ public class StandardInputTests : IDisposable
         var command = _workspace.Node("hex.js").WithStandardInput(stream).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.Equal("000102feff", result.StandardOutput);
@@ -106,14 +106,14 @@ public class StandardInputTests : IDisposable
     }
 
     [Fact]
-    public void Execute_copies_stdin_stream_and_leaves_it_open()
+    public void Run_copies_stdin_stream_and_leaves_it_open()
     {
         // arrange
         var stream = new MemoryStream(new byte[] { 0, 1, 2, 254, 255 });
         var command = _workspace.Node("hex.js").WithStandardInput(stream).GetCommand();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
 
         // assert
         Assert.Equal("000102feff", result.StandardOutput);
@@ -121,14 +121,14 @@ public class StandardInputTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_succeeds_when_the_child_exits_before_reading_large_stdin()
+    public async Task RunAsync_succeeds_when_the_child_exits_before_reading_large_stdin()
     {
         // arrange
         var input = TestWorkspace.Generate(0, 8_000_000);
         var command = _workspace.Node("exit.js", "0").WithStandardInput(input).GetCommand();
 
         // act
-        var result = await command.ExecuteAsync();
+        var result = await command.RunAsync();
 
         // assert
         Assert.True(result.Success);
@@ -136,21 +136,21 @@ public class StandardInputTests : IDisposable
     }
 
     [Fact]
-    public void Execute_succeeds_when_the_child_exits_before_reading_large_stdin()
+    public void Run_succeeds_when_the_child_exits_before_reading_large_stdin()
     {
         // arrange
         var input = TestWorkspace.Generate(0, 8_000_000);
         var command = _workspace.Node("exit.js", "0").WithStandardInput(input).GetCommand();
 
         // act
-        var result = command.Execute();
+        var result = command.Run();
 
         // assert
         Assert.True(result.Success);
     }
 
     [Fact]
-    public async Task ExecuteAsync_rejects_text_and_stream_stdin_together()
+    public async Task RunAsync_rejects_text_and_stream_stdin_together()
     {
         // arrange
         var command = _workspace.Node("hex.js").GetCommand();
@@ -158,14 +158,14 @@ public class StandardInputTests : IDisposable
         command.StandardInputStream = new MemoryStream();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<ArgumentException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<ArgumentException>(() => command.RunAsync());
 
         // assert
         Assert.Contains("not both", exception.Message);
     }
 
     [Fact]
-    public async Task ExecuteAsync_terminates_the_child_and_rethrows_when_the_stdin_stream_fails()
+    public async Task RunAsync_terminates_the_child_and_rethrows_when_the_stdin_stream_fails()
     {
         // arrange
         var stream = new ThrowingStream(() => _workspace.WaitForFile("pid.pid")); // fail only once the child is known to be running
@@ -174,7 +174,7 @@ public class StandardInputTests : IDisposable
             .GetCommand();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<IOException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<IOException>(() => command.RunAsync());
 
         // assert
         Assert.Equal("stream-failure", exception.Message);
@@ -182,7 +182,7 @@ public class StandardInputTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_times_out_while_stdin_is_blocked_because_the_child_never_reads()
+    public async Task RunAsync_times_out_while_stdin_is_blocked_because_the_child_never_reads()
     {
         // arrange
         var input = TestWorkspace.Generate(0, 4_000_000); // larger than the pipe buffer, so the writer is blocked
@@ -193,7 +193,7 @@ public class StandardInputTests : IDisposable
             .GetCommand();
 
         // act
-        var exception = await TestWorkspace.CaptureAsync<Exceptions.ProcessTimeoutException>(() => command.ExecuteAsync());
+        var exception = await TestWorkspace.CaptureAsync<Exceptions.ProcessTimeoutException>(() => command.RunAsync());
 
         // assert
         Assert.True(exception.Result.TimedOut);

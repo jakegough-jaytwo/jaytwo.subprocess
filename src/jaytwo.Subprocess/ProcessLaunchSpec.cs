@@ -7,7 +7,7 @@ namespace jaytwo.Subprocess;
 
 /// <summary>
 /// The launch-only settings shared by the one-shot path (<see cref="CliCommand"/>) and the session path
-/// (<see cref="Streaming.CliProcessOptions"/>). Everything that starts, drains or terminates a process goes through this.
+/// (<see cref="Streaming.CliProcessSession"/>). Everything that starts, drains or terminates a process goes through this.
 /// </summary>
 internal sealed class ProcessLaunchSpec
 {

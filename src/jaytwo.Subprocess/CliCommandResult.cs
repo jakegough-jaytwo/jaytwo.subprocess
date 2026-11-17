@@ -10,9 +10,9 @@ namespace jaytwo.Subprocess
 
         public int ExitCode { get; set; }
 
-        public string? StandardError { get; set; }
+        public string StandardError { get; set; } = string.Empty;
 
-        public string? StandardOutput { get; set; }
+        public string StandardOutput { get; set; } = string.Empty;
 
         public bool Success { get; set; }
 

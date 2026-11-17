@@ -10,7 +10,7 @@ var command = new CliCommandBuilder("node", echoScript)
     .WithStandardInput("hello")
     .GetCommand();
 
-CliCommandResult result = await command.ExecuteAsync();
+CliCommandResult result = await command.RunAsync();
 Console.WriteLine(result.StandardOutput);
 ```
 
@@ -26,7 +26,7 @@ var command = new CliCommandBuilder("node", hexScript)
     .WithStandardInput(inputStream)
     .GetCommand();
 
-CliCommandResult result = await command.ExecuteAsync();
+CliCommandResult result = await command.RunAsync();
 ```
 
 Bytes are copied from the stream's current position to its end. The caller owns the stream: it is never disposed or rewound, and must not be used until the call returns.

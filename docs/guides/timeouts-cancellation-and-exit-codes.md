@@ -13,7 +13,7 @@ var command = new CliCommandBuilder("node", "-e")
     .WithExpectedExitCodes(0, 1) // 1 = treated as success for this tool
     .GetCommand();
 
-CliCommandResult result = await command.ExecuteAsync();
+CliCommandResult result = await command.RunAsync();
 ```
 
 An unexpected exit code throws `UnexpectedExitCodeException` (`Success == false` on the result).
@@ -29,7 +29,7 @@ var command = new CliCommandBuilder("node", "-e")
     .WithTimeout(TimeSpan.FromMinutes(5))
     .GetCommand();
 
-await command.ExecuteAsync();
+await command.RunAsync();
 ```
 
 When the timeout elapses the library terminates the **process tree**, waits for exit, drains output (bounded by `OutputDrainTimeout`), and throws `ProcessTimeoutException` (`TimedOut` on the result).
@@ -42,7 +42,7 @@ using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
 try
 {
-    await command.ExecuteAsync(cts.Token);
+    await command.RunAsync(cts.Token);
 }
 catch (ProcessCanceledException)
 {
@@ -69,7 +69,7 @@ Timeout, unexpected-exit and termination exceptions derive from `SubprocessExcep
 
 <!-- sample: suppress -->
 ```csharp
-CliCommandResult result = await command.ExecuteAsync(suppressCommandLineExceptions: true);
+CliCommandResult result = await command.RunAsync(suppressCommandLineExceptions: true);
 
 if (result.TimedOut || !result.Success || result.TerminationFailed)
 {

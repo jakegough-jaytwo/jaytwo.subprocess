@@ -296,13 +296,13 @@ internal sealed class TestWorkspace : IDisposable
         return Node(script, allArgs);
     }
 
-    public Streaming.CliProcessOptions NodeOptions(string script, params string[] args)
+    public CliCommand NodeSessionCommand(string script, params string[] args)
     {
-        // Node() installs a one-shot Timeout; clear it before GetProcessOptions.
+        // Node() installs a one-shot Timeout; clear it before Start.
         return NodeWithDirectory(script, args)
             .WithTimeout(null)
             .WithTerminateTimeout(TimeSpan.FromSeconds(10))
-            .GetProcessOptions();
+            .GetCommand();
     }
 
     public bool WaitForFile(string name) => WaitUntil(() => File.Exists(PathOf(name)), TimeSpan.FromSeconds(60));
