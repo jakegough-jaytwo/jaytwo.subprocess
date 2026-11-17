@@ -40,17 +40,16 @@ var command = new CliCommandBuilder("node", scriptPath)
 
 Environment entries are merged into the child's environment for that launch only.
 
-## Reuse the quoted argument string
+## Start a session from the builder
 
-When you need the same quoting for a long-lived session:
+When you need the same quoting for a long-lived session, build `CliProcessOptions` directly:
 
 <!-- sample: pass-arguments-session -->
 ```csharp
-string? arguments = new CliCommandBuilder("node", workerScript, workingDirectory, "--mode", mode)
-    .GetCommand()
-    .Arguments;
+var options = new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode)
+    .GetProcessOptions();
 
-using var session = CliProcessSession.Start(new CliProcessOptions("node", arguments));
+using var session = CliProcessSession.Start(options);
 ```
 
 

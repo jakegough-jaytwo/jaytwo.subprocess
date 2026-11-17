@@ -2,6 +2,10 @@
 
 | Document | Purpose |
 | --- | --- |
-| [Guides](guides/README.md) | How to run tools, capture output, feed stdin, handle timeouts and talk to long-lived workers. |
+| [Charter](charter.md) | Why the project exists, its principles and architecture. Highest authority. |
+| [Scope](scope.md) | The capabilities in scope and what is excluded. Second authority. |
+| [Guides](guides/README.md) | How to do ordinary tasks, with tested samples. Not product authority. |
 
-The [README](../README.md) is the product overview and behavior reference. Guides are how-tos, not product authority.
+Changes to the charter or scope need the owner's approval; see [AGENTS.md](../AGENTS.md).
+
+The root [README](../README.md) is a product overview and getting-started page. It summarizes behavior; when it disagrees with charter or scope, they win.

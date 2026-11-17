@@ -23,7 +23,7 @@ public class CliProcessOptions
     public string? FileName { get; set; }
 
     /// <summary>
-    /// The already-quoted command line. <see cref="CliCommandBuilder"/> builds one safely: <c>new CliCommandBuilder("tool", "a b").GetCommand().Arguments</c>.
+    /// The already-quoted command line. Prefer <see cref="CliCommandBuilder.GetProcessOptions"/> so quoting and launch settings stay consistent with one-shot runs.
     /// </summary>
     public string? Arguments { get; set; }
 

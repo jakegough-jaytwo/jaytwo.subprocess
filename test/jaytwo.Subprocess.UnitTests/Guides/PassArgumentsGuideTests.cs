@@ -87,20 +87,19 @@ public class PassArgumentsGuideTests : IDisposable
     {
         // arrange
         string workerScript = _workspace.PathOf("worker.js");
-        string workingDirectory = _workspace.Directory;
+        string outputDirectory = _workspace.Directory;
         string mode = "echo";
 
         // act
         // sample: pass-arguments-session
-        string? arguments = new CliCommandBuilder("node", workerScript, workingDirectory, "--mode", mode)
-            .GetCommand()
-            .Arguments;
+        var options = new CliCommandBuilder("node", workerScript, outputDirectory, "--mode", mode)
+            .GetProcessOptions();
 
-        using var session = CliProcessSession.Start(new CliProcessOptions("node", arguments));
+        using var session = CliProcessSession.Start(options);
         // end sample
 
         // assert
         Assert.False(session.HasExited);
-        Assert.Contains("--mode", arguments);
+        Assert.Contains("--mode", options.Arguments);
     }
 }

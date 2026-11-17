@@ -1,4 +1,13 @@
-# Repo Instructions
+# Agent Instructions
+
+## Authority
+
+Product behavior: the [charter](docs/charter.md) governs, then [scope](docs/scope.md). This file governs how agents work. README, guides, code comments, and task notes are not product authority.
+
+- If two product documents disagree, the higher one wins. Tell the owner about the difference instead of resolving it quietly.
+- Ask the owner before changing the charter, scope, or this file; before adding a capability; or before adding a caller-visible limit or exclusion.
+- Prefer the smallest change that meets the request and stays inside scope. If a request only stops someone from using `Process` or another library, put it in Streaming or decline; do not widen the one-shot API by default.
+- Do not add native code or new runtime dependencies without explaining why existing facilities are insufficient and getting owner approval.
 
 ## Workflow
 
@@ -47,9 +56,15 @@
 - Name test methods as `MethodName_does_behavior`, not `MethodName_WhenCondition_ThenOutcome`.
 - Use lowercase `// arrange`, `// act`, `// assert` section comments in every test method. Never omit a section - if a section has nothing to do, add a parenthetical note, e.g. `// arrange (no setup needed)` or `// act (no action needed)`. Always extract act calls into named variables; do not call the method under test inline inside an `Assert`.
 
+## Repo map
+
+- `src/jaytwo.Subprocess`: the library (one-shot execution plus `Streaming` escape hatch).
+- `test/`: unit tests, including guide sample honesty tests under `Guides/`.
+- `docs/`: [charter](docs/charter.md), [scope](docs/scope.md), and usage [guides](docs/guides/README.md).
+
 ## Guides
 
-`docs/guides/` how-tos are kept honest by tests in `test/jaytwo.Subprocess.UnitTests/Guides/`.
+`docs/guides/` how-tos are kept honest by tests in `test/jaytwo.Subprocess.UnitTests/Guides/`. Guides are not product authority.
 
 - Every C# fence in a guide that is a real sample must be preceded by `<!-- sample: id -->`. The same code must appear in a guide test between `// sample: id` and `// end sample`. `GuideSampleTests` fails when they differ (comparison is trimmed-line).
 - Change the guide and the matching test region together. Do not edit one without the other.

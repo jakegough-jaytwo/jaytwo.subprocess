@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using jaytwo.RuntimeRevelation;
 using jaytwo.Subprocess.Shim;
+using jaytwo.Subprocess.Streaming;
 
 namespace jaytwo.Subprocess
 {
@@ -229,6 +230,72 @@ namespace jaytwo.Subprocess
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Builds launch settings for a <see cref="CliProcessSession"/> from this builder's file name, quoted arguments,
+        /// working directory, environment, secrets and encodings. One-shot settings (stdin, timeout, expected exit codes,
+        /// output drain timeout) are not applied and cause <see cref="InvalidOperationException"/> if configured.
+        /// </summary>
+        public CliProcessOptions GetProcessOptions()
+        {
+            var unsupported = GetUnsupportedProcessOptionSettings();
+            if (unsupported.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "GetProcessOptions cannot apply these one-shot settings: " + string.Join(", ", unsupported) +
+                    ". Clear them for a session, or use GetCommand() for one-shot execution.");
+            }
+
+            var result = new CliProcessOptions
+            {
+                FileName = FileName,
+                Arguments = GetInlineArguments(Arguments),
+                WorkingDirectory = WorkingDirectory,
+                Secrets = Secrets?.ToList() ?? new List<string>(),
+                StandardInputEncoding = StandardInputEncoding,
+                StandardOutputEncoding = StandardOutputEncoding,
+                StandardErrorEncoding = StandardErrorEncoding,
+            };
+
+            foreach (var environmentVariable in EnvironmentVariables)
+            {
+                result.Environment[environmentVariable.Key] = environmentVariable.Value;
+            }
+
+            return result;
+
+            List<string> GetUnsupportedProcessOptionSettings()
+            {
+                var names = new List<string>();
+
+                if (StandardInput != null)
+                {
+                    names.Add(nameof(StandardInput));
+                }
+
+                if (StandardInputStream != null)
+                {
+                    names.Add(nameof(StandardInputStream));
+                }
+
+                if (Timeout.HasValue)
+                {
+                    names.Add(nameof(Timeout));
+                }
+
+                if (ExpectedExitCodes != null && ExpectedExitCodes.Count > 0)
+                {
+                    names.Add(nameof(ExpectedExitCodes));
+                }
+
+                if (OutputDrainTimeout.HasValue)
+                {
+                    names.Add(nameof(OutputDrainTimeout));
+                }
+
+                return names;
+            }
         }
 
         public override string ToString()

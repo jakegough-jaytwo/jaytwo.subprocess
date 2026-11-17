@@ -1,6 +1,6 @@
 # Guides
 
-Short how-tos for ordinary tasks with `jaytwo.Subprocess`. Guides describe usage; the [README](../../README.md) is the behavior reference for capture, termination and outcomes.
+Short how-tos for ordinary tasks with `jaytwo.Subprocess`. Guides describe usage, not product rules: the [charter](../charter.md) and [scope](../scope.md) govern what belongs in the package.
 
 | Task | Guide |
 | --- | --- |

@@ -19,16 +19,14 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
     {
         // arrange
         string workerScript = _workspace.PathOf("worker.js");
-        string workingDirectory = _workspace.Directory;
+        string outputDirectory = _workspace.Directory;
         string request = "ping";
 
         // act
         // sample: session-basic
-        string? arguments = new CliCommandBuilder("node", workerScript, workingDirectory)
-            .GetCommand()
-            .Arguments;   // safely quoted
-
-        using var session = CliProcessSession.Start(new CliProcessOptions("node", arguments));
+        using var session = CliProcessSession.Start(
+            new CliCommandBuilder("node", workerScript, outputDirectory)
+                .GetProcessOptions());
         session.StandardInput.NewLine = "\n";
 
         await session.StandardInput.WriteLineAsync(request);
@@ -87,17 +85,17 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
     public void configure_session_options()
     {
         // arrange
-        string? arguments = _workspace.NodeWithDirectory("worker.js").GetCommand().Arguments;
+        string workerScript = _workspace.PathOf("worker.js");
+        string outputDirectory = _workspace.Directory;
         string workerDirectory = _workspace.Directory;
 
         // act
         // sample: session-options
-        var options = new CliProcessOptions("node", arguments)
-        {
-            WorkingDirectory = workerDirectory,
-            TerminateTimeout = TimeSpan.FromSeconds(10),
-        };
-        options.Environment["NODE_ENV"] = "test";
+        var options = new CliCommandBuilder("node", workerScript, outputDirectory)
+            .WithWorkingDirectory(workerDirectory)
+            .WithEnvironmentVariable("NODE_ENV", "test")
+            .GetProcessOptions();
+        options.TerminateTimeout = TimeSpan.FromSeconds(10);
 
         using var session = CliProcessSession.Start(options);
         // end sample

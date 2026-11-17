@@ -298,8 +298,8 @@ internal sealed class TestWorkspace : IDisposable
 
     public Streaming.CliProcessOptions NodeOptions(string script, params string[] args)
     {
-        var command = NodeWithDirectory(script, args).GetCommand();
-        var options = new Streaming.CliProcessOptions("node", command.Arguments);
+        // Node() installs a one-shot Timeout; clear it before GetProcessOptions.
+        var options = NodeWithDirectory(script, args).WithTimeout(null).GetProcessOptions();
         options.TerminateTimeout = TimeSpan.FromSeconds(10);
         return options;
     }
