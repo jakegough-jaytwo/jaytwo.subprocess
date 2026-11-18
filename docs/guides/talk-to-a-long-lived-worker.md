@@ -44,6 +44,21 @@ int exitCode = await session.WaitForExitAsync(token);   // cancel abandons the w
 
 `Dispose()` terminates the whole tree if it is still running and releases pipes and the stderr drain. Do not use `StandardInput` / `StandardOutput` after dispose.
 
+
+### Stop a worker gracefully
+
+`Shutdown` closes stdin so the worker sees end of input, waits up to the grace period for it to exit (and for the stderr drain to finish), and terminates the whole tree only if it is still running. It returns `true` when the worker exited on its own.
+
+<!-- sample: session-graceful-stop -->
+```csharp
+bool exitedOnItsOwn = session.Shutdown(TimeSpan.FromSeconds(5));
+string lastWords = session.StandardError;   // complete after a clean exit
+```
+
+`Shutdown` does not dispose the session; `using` still releases it. `ShutdownAsync(gracePeriod, token)` is the async form: cancelling the token cuts the grace period short, terminates the tree and throws `OperationCanceledException`.
+
+If your worker stops on something other than end of input (a `quit` command, for example), send it yourself, then call `WaitForExit(timeout)` and `Terminate()` if it returns `false`. `WaitForExit` and `WaitForExitAsync(timeout, token)` never terminate the process on their own.
+
 For workers in Linux containers, also configure an init/reaper so terminated descendants can be reaped. See [Docker and Kubernetes deployment guidance](run-across-platforms.md#linux-containers-docker-and-kubernetes).
 
 ## Options
@@ -60,6 +75,6 @@ using var session = new CliCommandBuilder("node", workerScript, outputDirectory)
 
 ## Things to know
 
-- `StandardError` is the last 64K characters of stderr, drained continuously so a chatty worker cannot block on a full pipe.
+- `StandardError` is the last 64K characters of stderr, drained continuously so a chatty worker cannot block on a full pipe. It is complete once `WaitForExit(timeout)` or `Shutdown(gracePeriod)` returns `true`, unless a descendant still holds the pipe.
 - Restarting a dead worker, correlating requests and per-request deadlines belong to the caller.
 - Prefer `builder.GetCommand().Start()` when starting a session from a builder. See [Pass arguments](pass-arguments.md).

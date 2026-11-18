@@ -134,6 +134,289 @@ public class ProcessSessionTests : IDisposable
     }
 
     [Fact]
+    public void WaitForExit_returns_true_with_complete_standard_error_once_the_worker_exits()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        session.StandardInput.WriteLine("crash");
+
+        // act
+        var exited = session.WaitForExit(TimeSpan.FromSeconds(20));
+        var standardError = session.StandardError;
+
+        // assert
+        Assert.True(exited);
+        Assert.True(session.HasExited);
+        Assert.Contains("saw:crash", standardError);
+    }
+
+    [Fact]
+    public void WaitForExit_returns_true_after_standard_input_is_closed()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        session.StandardInput.Dispose();
+
+        // act
+        var exited = session.WaitForExit(TimeSpan.FromSeconds(20));
+
+        // assert
+        Assert.True(exited);
+        Assert.True(session.HasExited);
+    }
+
+    [Fact]
+    public void WaitForExit_returns_false_without_killing_a_worker_that_is_still_running()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+
+        // act
+        var exited = session.WaitForExit(TimeSpan.FromMilliseconds(200));
+
+        // assert
+        Assert.False(exited);
+        Assert.False(session.HasExited);
+        Assert.True(TestWorkspace.IsAlive(session.ProcessId));
+    }
+
+    [Theory]
+    [InlineData(-2000)]
+    [InlineData(-1)] // Timeout.InfiniteTimeSpan
+    public void WaitForExit_rejects_a_negative_or_infinite_timeout(int milliseconds)
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+
+        // act
+        var exception = TestWorkspace.Capture<ArgumentOutOfRangeException>(() => session.WaitForExit(TimeSpan.FromMilliseconds(milliseconds)));
+
+        // assert
+        Assert.Equal("timeout", exception.ParamName);
+    }
+
+    [Fact]
+    public void WaitForExit_throws_after_dispose()
+    {
+        // arrange
+        var session = _workspace.NodeSessionCommand("worker.js").Start();
+        session.Dispose();
+
+        // act
+        var exception = TestWorkspace.Capture<ObjectDisposedException>(() => session.WaitForExit(TimeSpan.Zero));
+
+        // assert
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public async Task WaitForExitAsync_with_a_timeout_returns_true_with_complete_standard_error_once_the_worker_exits()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        await session.StandardInput.WriteLineAsync("crash");
+
+        // act
+        var exited = await session.WaitForExitAsync(TimeSpan.FromSeconds(20));
+        var standardError = session.StandardError;
+
+        // assert
+        Assert.True(exited);
+        Assert.True(session.HasExited);
+        Assert.Contains("saw:crash", standardError);
+    }
+
+    [Fact]
+    public async Task WaitForExitAsync_with_a_timeout_returns_false_without_killing_a_worker_that_is_still_running()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+
+        // act
+        var exited = await session.WaitForExitAsync(TimeSpan.FromMilliseconds(200));
+
+        // assert
+        Assert.False(exited);
+        Assert.False(session.HasExited);
+        Assert.True(TestWorkspace.IsAlive(session.ProcessId));
+    }
+
+    [Fact]
+    public async Task WaitForExitAsync_with_a_timeout_cancellation_abandons_the_wait_without_killing_the_worker()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+
+        // act
+        var exception = await TestWorkspace.CaptureAsync<OperationCanceledException>(() => session.WaitForExitAsync(TimeSpan.FromSeconds(20), cancellation.Token));
+
+        // assert
+        Assert.NotNull(exception);
+        Assert.False(session.HasExited);
+        Assert.True(TestWorkspace.IsAlive(session.ProcessId));
+    }
+
+    [Theory]
+    [InlineData(-2000)]
+    [InlineData(-1)] // Timeout.InfiniteTimeSpan
+    public async Task WaitForExitAsync_with_a_timeout_rejects_a_negative_or_infinite_timeout(int milliseconds)
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+
+        // act
+        var exception = await TestWorkspace.CaptureAsync<ArgumentOutOfRangeException>(() => session.WaitForExitAsync(TimeSpan.FromMilliseconds(milliseconds)));
+
+        // assert
+        Assert.Equal("timeout", exception.ParamName);
+    }
+
+    [Fact]
+    public void Shutdown_returns_true_with_complete_standard_error_when_the_worker_exits_on_end_of_input()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        session.StandardInput.WriteLine("ping");
+        Assert.Equal("echo:ping", session.StandardOutput.ReadLine());
+
+        // act
+        var exitedOnItsOwn = session.Shutdown(TimeSpan.FromSeconds(20));
+        var standardError = session.StandardError;
+
+        // assert
+        Assert.True(exitedOnItsOwn);
+        Assert.True(session.HasExited);
+        Assert.Contains("saw:ping", standardError);
+    }
+
+    [Fact]
+    public void Shutdown_accepts_standard_input_that_is_already_closed()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        session.StandardInput.Dispose();
+
+        // act
+        var exitedOnItsOwn = session.Shutdown(TimeSpan.FromSeconds(20));
+
+        // assert
+        Assert.True(exitedOnItsOwn);
+        Assert.True(session.HasExited);
+    }
+
+    [Fact]
+    public void Shutdown_terminates_a_worker_that_ignores_end_of_input()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("pid.js", "hold").Start();
+        Assert.True(_workspace.WaitForFile("pid.pid"));
+
+        // act
+        var exitedOnItsOwn = session.Shutdown(TimeSpan.FromMilliseconds(300));
+
+        // assert
+        Assert.False(exitedOnItsOwn);
+        Assert.True(session.HasExited);
+        Assert.True(TestWorkspace.WaitUntilDead(_workspace.ReadProcessId("pid.pid")));
+    }
+
+    [Theory]
+    [InlineData(-2000)]
+    [InlineData(-1)] // Timeout.InfiniteTimeSpan
+    public void Shutdown_rejects_a_negative_or_infinite_grace_period(int milliseconds)
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+
+        // act
+        var exception = TestWorkspace.Capture<ArgumentOutOfRangeException>(() => session.Shutdown(TimeSpan.FromMilliseconds(milliseconds)));
+
+        // assert
+        Assert.Equal("gracePeriod", exception.ParamName);
+    }
+
+    [Fact]
+    public void Shutdown_throws_after_dispose()
+    {
+        // arrange
+        var session = _workspace.NodeSessionCommand("worker.js").Start();
+        session.Dispose();
+
+        // act
+        var exception = TestWorkspace.Capture<ObjectDisposedException>(() => session.Shutdown(TimeSpan.Zero));
+
+        // assert
+        Assert.NotNull(exception);
+    }
+
+    [Fact]
+    public async Task ShutdownAsync_returns_true_with_complete_standard_error_when_the_worker_exits_on_end_of_input()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        await session.StandardInput.WriteLineAsync("ping");
+        Assert.Equal("echo:ping", await session.StandardOutput.ReadLineAsync());
+
+        // act
+        var exitedOnItsOwn = await session.ShutdownAsync(TimeSpan.FromSeconds(20));
+        var standardError = session.StandardError;
+
+        // assert
+        Assert.True(exitedOnItsOwn);
+        Assert.True(session.HasExited);
+        Assert.Contains("saw:ping", standardError);
+    }
+
+    [Fact]
+    public async Task ShutdownAsync_terminates_a_worker_that_ignores_end_of_input()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("pid.js", "hold").Start();
+        Assert.True(await _workspace.WaitForFileAsync("pid.pid"));
+
+        // act
+        var exitedOnItsOwn = await session.ShutdownAsync(TimeSpan.FromMilliseconds(300));
+
+        // assert
+        Assert.False(exitedOnItsOwn);
+        Assert.True(session.HasExited);
+        Assert.True(TestWorkspace.WaitUntilDead(_workspace.ReadProcessId("pid.pid")));
+    }
+
+    [Fact]
+    public async Task ShutdownAsync_cancellation_terminates_the_worker_and_throws()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("pid.js", "hold").Start();
+        Assert.True(await _workspace.WaitForFileAsync("pid.pid"));
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+
+        // act
+        var exception = await TestWorkspace.CaptureAsync<OperationCanceledException>(() => session.ShutdownAsync(TimeSpan.FromSeconds(20), cancellation.Token));
+
+        // assert
+        Assert.NotNull(exception);
+        Assert.True(session.HasExited);
+        Assert.True(TestWorkspace.WaitUntilDead(_workspace.ReadProcessId("pid.pid")));
+    }
+
+    [Theory]
+    [InlineData(-2000)]
+    [InlineData(-1)] // Timeout.InfiniteTimeSpan
+    public async Task ShutdownAsync_rejects_a_negative_or_infinite_grace_period(int milliseconds)
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+
+        // act
+        var exception = await TestWorkspace.CaptureAsync<ArgumentOutOfRangeException>(() => session.ShutdownAsync(TimeSpan.FromMilliseconds(milliseconds)));
+
+        // assert
+        Assert.Equal("gracePeriod", exception.ParamName);
+    }
+
+    [Fact]
     public void Start_applies_environment_and_masks_secrets_in_options_text()
     {
         // arrange
