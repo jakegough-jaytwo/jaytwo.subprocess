@@ -118,9 +118,9 @@ Apply builder actions only when a caller-supplied condition is true (for example
 
 ### Process session
 
-Start a long-lived process with stdin/stdout open for the caller, drain stderr in the background (bounded tail), expose PID/`Process` for telemetry, and terminate the tree on `Terminate` or `Dispose`.
+Start a long-lived process with stdin/stdout open for the caller, drain stderr in the background (bounded tail), expose PID/`Process` for telemetry, wait for exit with or without a bound, stop gracefully with `Shutdown` (close stdin, wait up to a grace period, then terminate the tree if it is still running), and terminate the tree on `Terminate` or `Dispose`.
 
-*Uses the same launch and tree-kill machinery as one-shot; does not wait for a final "result" object.*
+*Uses the same launch and tree-kill machinery as one-shot; does not wait for a final "result" object. A bounded wait also waits, within the same bound, for the stderr drain, so the tail is complete after a clean exit. `Dispose` stays an immediate tree termination; graceful stop is always an explicit call.*
 
 `CliCommand.Start` accepts launch and terminate settings. It rejects currently configured one-shot timeout, expected exit codes, stdin text/stream, and output drain timeout. `Run` / `RunAsync` reject a configured `TerminateTimeout`. Null settings and null or empty expected exit codes are unset; empty stdin text remains configured input. Clearing a setting restores eligibility for the other verb.
 
@@ -129,7 +129,7 @@ Start a long-lived process with stdin/stdout open for the caller, drain stderr i
 The scope excludes:
 
 - Competing with CliWrap (or similar) on breadth of adapters, pipelines, and fluent execution styles
-- Process pools, worker supervisors, request/response framing, or protocol helpers
+- Process pools, worker supervisors, request/response framing, or protocol helpers (including startup handshakes and worker-specific stop commands; callers send those and use the bounded wait)
 - Per-request deadlines inside the session API (callers compose `CancellationToken` + `Terminate`)
 - Cancelling a pending `ReadLineAsync` without terminating the process (framework limitation; `Terminate` is the unblock)
 - Silent parent-only kill when tree termination is unavailable

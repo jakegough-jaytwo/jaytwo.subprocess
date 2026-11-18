@@ -108,6 +108,97 @@ public sealed class CliProcessSession : IDisposable
     }
 
     /// <summary>
+    /// Waits up to <paramref name="timeout"/> for the process to exit and returns whether it did. After an exit it also waits,
+    /// within the same timeout, for the stderr drain to finish, so <see cref="StandardError"/> is complete unless a
+    /// descendant still holds the pipe. Returning false does not terminate the process; call <see cref="Terminate"/> for that.
+    /// </summary>
+    public bool WaitForExit(TimeSpan timeout)
+    {
+        ValidateWaitTimeout(timeout, nameof(timeout));
+        ThrowIfDisposed();
+
+        var stopwatch = Stopwatch.StartNew();
+
+        if (!_exited.Task.Wait(timeout))
+        {
+            return false;
+        }
+
+        _standardErrorPump.Completion.Wait(RemainingTime(timeout, stopwatch));
+        return true;
+    }
+
+    /// <summary>
+    /// Waits up to <paramref name="timeout"/> for the process to exit and returns whether it did, then waits within the same
+    /// timeout for the stderr drain, like <see cref="WaitForExit(TimeSpan)"/>. Cancelling the token only abandons the wait
+    /// (throwing <see cref="OperationCanceledException"/>); it does not terminate the process.
+    /// </summary>
+    public async Task<bool> WaitForExitAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        ValidateWaitTimeout(timeout, nameof(timeout));
+        ThrowIfDisposed();
+
+        var stopwatch = Stopwatch.StartNew();
+
+        if (!await WaitWithTimeoutAsync(_exited.Task, timeout, cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        await WaitWithTimeoutAsync(_standardErrorPump.Completion, RemainingTime(timeout, stopwatch), cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>
+    /// Stops the worker gracefully: closes <see cref="StandardInput"/> so the worker sees end of input, waits up to
+    /// <paramref name="gracePeriod"/> like <see cref="WaitForExit(TimeSpan)"/>, and terminates the whole process tree if it is
+    /// still running. Returns true if the process exited on its own. Does not dispose the session.
+    /// </summary>
+    public bool Shutdown(TimeSpan gracePeriod)
+    {
+        ValidateWaitTimeout(gracePeriod, nameof(gracePeriod));
+        ThrowIfDisposed();
+
+        CloseStandardInput();
+
+        if (WaitForExit(gracePeriod))
+        {
+            return true;
+        }
+
+        Terminate();
+        return false;
+    }
+
+    /// <summary>
+    /// The async form of <see cref="Shutdown(TimeSpan)"/>. Cancelling the token cuts the grace period short: the process tree
+    /// is terminated and <see cref="OperationCanceledException"/> is thrown.
+    /// </summary>
+    public async Task<bool> ShutdownAsync(TimeSpan gracePeriod, CancellationToken cancellationToken = default)
+    {
+        ValidateWaitTimeout(gracePeriod, nameof(gracePeriod));
+        ThrowIfDisposed();
+
+        CloseStandardInput();
+
+        try
+        {
+            if (await WaitForExitAsync(gracePeriod, cancellationToken).ConfigureAwait(false))
+            {
+                return true;
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            Terminate();
+            throw;
+        }
+
+        Terminate();
+        return false;
+    }
+
+    /// <summary>
     /// Terminates the process and all of its descendants, then waits (bounded by <see cref="CliCommand.TerminateTimeout"/>) for it to exit.
     /// Safe to call repeatedly, from any thread (including a cancellation callback), and when the process already exited.
     /// Never throws for a process that will not die: if it is still running after the wait, <see cref="HasExited"/> stays false.
@@ -212,6 +303,55 @@ public sealed class CliProcessSession : IDisposable
             }
 
             throw;
+        }
+    }
+
+    private static void ValidateWaitTimeout(TimeSpan value, string name)
+    {
+        if (value < TimeSpan.Zero || value.TotalMilliseconds > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(name, value, "Must be non-negative and finite.");
+        }
+    }
+
+    private static TimeSpan RemainingTime(TimeSpan timeout, Stopwatch stopwatch)
+    {
+        var remaining = timeout - stopwatch.Elapsed;
+        return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
+    }
+
+    // true when the task finished within the timeout; the linked source releases the delay timer either way
+    private static async Task<bool> WaitWithTimeoutAsync(Task task, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        if (task.IsCompleted)
+        {
+            return true;
+        }
+
+        using (var delayCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            var completed = await Task.WhenAny(task, Task.Delay(timeout, delayCancellation.Token)).ConfigureAwait(false);
+            delayCancellation.Cancel();
+
+            if (completed == task)
+            {
+                return true;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return false;
+        }
+    }
+
+    // the worker may already be gone; a broken pipe must not stop the shutdown
+    private void CloseStandardInput()
+    {
+        try
+        {
+            StandardInput.Dispose();
+        }
+        catch (IOException)
+        {
         }
     }
 

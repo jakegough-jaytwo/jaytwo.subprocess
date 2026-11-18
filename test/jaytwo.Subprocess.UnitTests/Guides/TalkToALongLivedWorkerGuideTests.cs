@@ -78,6 +78,25 @@ public class TalkToALongLivedWorkerGuideTests : IDisposable
     }
 
     [Fact]
+    public void stop_a_worker_gracefully()
+    {
+        // arrange
+        using var session = _workspace.NodeSessionCommand("worker.js").Start();
+        session.StandardInput.WriteLine("ping");
+        Assert.Equal("echo:ping", session.StandardOutput.ReadLine());
+
+        // act
+        // sample: session-graceful-stop
+        bool exitedOnItsOwn = session.Shutdown(TimeSpan.FromSeconds(5));
+        string lastWords = session.StandardError;   // complete after a clean exit
+        // end sample
+
+        // assert
+        Assert.True(exitedOnItsOwn);
+        Assert.Contains("saw:ping", lastWords);
+    }
+
+    [Fact]
     public void configure_session_options()
     {
         // arrange

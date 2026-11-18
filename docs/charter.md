@@ -12,7 +12,7 @@ _The goal is functionality that remains simple to reason about, maintain, and us
 
 The default story is one-shot execution: build a command, execute it, inspect a result. Optional features stay off that path until needed. The public surface should stay readable for someone who only wants "run this and give me the strings."
 
-`jaytwo.Subprocess.Streaming` is an explicit escape hatch for long-lived workers (open stdin/stdout, tree termination). It is not a second product line: no framing, pooling, restarts, or protocol helpers.
+`jaytwo.Subprocess.Streaming` is an explicit escape hatch for long-lived workers. It owns the process lifetime (start, open pipes, bounded waits, graceful or forced stop, tree termination) and leaves the conversation (what is written and read, and when) to the caller. It is not a second product line.
 
 Prefer capabilities whose complexity stays contained and whose interactions are predictable. A feature that only exists so callers never leave the library, or that makes the default builder harder to read, is generally contrary to the purpose, even when the functionality itself seems useful.
 
